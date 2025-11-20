@@ -1,0 +1,212 @@
+/* Global layout adjustments */
+:root {
+    --primary-color: #FF6F3C;
+    --primary-light: #FF9A3C;
+    --primary-muted: #FFE7D6;
+    --surface: #FFFFFF;
+    --surface-elevated: #FFF4EC;
+    --text-color: #2F2A26;
+}
+
+body {
+    background: #FFF8F3;
+    color: var(--text-color);
+    font-family: "Noto Sans JP", "Roboto", sans-serif;
+}
+
+.block-container {
+    padding-top: 1.5rem;
+    padding-bottom: 3rem;
+}
+
+/* Hero header */
+.hero-banner {
+    background: linear-gradient(135deg, #FFB347 0%, #FF6F3C 60%);
+    border-radius: 22px;
+    padding: 36px 40px;
+    color: #FFFFFF;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 45px -30px rgba(255, 111, 60, 0.75);
+}
+
+.hero-banner::after {
+    content: "";
+    position: absolute;
+    top: -60px;
+    right: -60px;
+    width: 220px;
+    height: 220px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+    filter: blur(0.5px);
+}
+
+.hero-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+
+.hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 0.95rem;
+}
+
+.hero-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-weight: 500;
+}
+
+/* KPI cards */
+.kpi-row {
+    margin-top: 24px;
+    gap: 16px;
+}
+
+.kpi-card {
+    position: relative;
+    background: var(--surface);
+    border-radius: 18px;
+    padding: 22px 24px;
+    box-shadow: 0 28px 40px -32px rgba(47, 42, 38, 0.45);
+    border: 1px solid rgba(255, 111, 60, 0.08);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    overflow: hidden;
+}
+
+.kpi-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 18px;
+    border: 2px solid transparent;
+    background: linear-gradient(135deg, rgba(255, 111, 60, 0.45), rgba(255, 154, 60, 0.15)) border-box;
+    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    opacity: 0.7;
+}
+
+.kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 32px 48px -36px rgba(255, 111, 60, 0.65);
+}
+
+.kpi-row .stButton button {
+    margin-top: 12px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #FF9A3C 0%, #FF6F3C 100%);
+    border: none;
+    color: #FFFFFF;
+    font-weight: 600;
+    box-shadow: 0 10px 20px -15px rgba(255, 111, 60, 0.8);
+}
+
+.kpi-row .stButton button:hover {
+    background: linear-gradient(135deg, #FFB347 0%, #FF6F3C 100%);
+}
+
+.kpi-label {
+    font-size: 1rem;
+    color: #786C63;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin-bottom: 10px;
+}
+
+.kpi-value {
+    font-size: 2.1rem;
+    font-weight: 800;
+    color: var(--primary-color);
+    margin-bottom: 6px;
+}
+
+.kpi-prev {
+    font-size: 0.88rem;
+    color: #6F625A;
+    margin-bottom: 4px;
+}
+
+.kpi-delta {
+    font-size: 0.9rem;
+    margin-top: 4px;
+    font-weight: 600;
+}
+
+.kpi-delta.positive {
+    color: #2A9D8F;
+}
+
+.kpi-delta.negative {
+    color: #E63946;
+}
+
+/* Tables */
+[data-testid="stDataFrame"] table {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 111, 60, 0.12);
+}
+
+/* Sidebar tweaks */
+section[data-testid="stSidebar"] > div {
+    background: linear-gradient(180deg, #FFF2E9 0%, #FFF8F3 100%);
+    border-right: 1px solid rgba(255, 111, 60, 0.12);
+}
+
+section[data-testid="stSidebar"] label {
+    color: #5D514A;
+    font-weight: 600;
+}
+
+section[data-testid="stSidebar"] .stMarkdown p {
+    margin-bottom: 8px;
+}
+
+/* Chat messages */
+.stChatMessage.user {
+    background: #FFE7D6;
+    border-radius: 18px;
+    box-shadow: inset 0 0 0 1px rgba(255, 111, 60, 0.15);
+}
+
+.stChatMessage.assistant {
+    background: #FFFFFF;
+    border-left: 4px solid var(--primary-color);
+    border-radius: 18px;
+    box-shadow: 0 8px 24px -18px rgba(47, 42, 38, 0.4);
+}
+
+/* Buttons */
+button[kind="secondary"] {
+    border-radius: 14px !important;
+}
+
+/* UX tip cards */
+.ux-tip-card {
+    background: var(--surface-elevated);
+    border-radius: 16px;
+    padding: 16px 20px;
+    border-left: 4px solid var(--primary-color);
+    box-shadow: 0 18px 36px -28px rgba(47, 42, 38, 0.35);
+    margin-bottom: 18px;
+}
+
+.ux-tip-title {
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--primary-color);
+}
+
+section[data-testid="stSidebar"] .ux-tip-card {
+    background: rgba(255, 255, 255, 0.65);
+    margin-bottom: 12px;
+}
