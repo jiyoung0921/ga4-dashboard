@@ -27,7 +27,7 @@ from pathlib import Path
 # ページ設定
 st.set_page_config(
     page_title="GA4 Analytics Dashboard",
-    page_icon="📊",
+    page_icon="assets/2025-11-21_00h52_14.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
