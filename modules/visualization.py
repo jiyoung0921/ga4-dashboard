@@ -10,13 +10,39 @@ import streamlit as st
 class Visualization:
     """可視化クラス"""
     
-    # カラーパレット
-    PRIMARY_COLOR = "#FF6F3C"
-    SECONDARY_COLOR = "#FF9A3C"
+    PRIMARY_COLOR = "#FF7A18"
+    SECONDARY_COLOR = "#FF9F4C"
     COLORS = [
-        "#FF6F3C", "#FF9A3C", "#FFC46B", "#2A9D8F", "#264653",
-        "#E76F51", "#F4A261", "#E9C46A", "#6D597A", "#4D908E"
+        "#FF7A18", "#F2B705", "#1AC6FF", "#8E8CFB", "#2EC4B6",
+        "#FF9F4C", "#F8669E", "#6C8CF5", "#19B27D", "#FFD166"
     ]
+    
+    @staticmethod
+    def _apply_base_layout(fig: go.Figure, title: str = "", x_title: str = "", y_title: str = "") -> go.Figure:
+        fig.update_layout(
+            title=title,
+            xaxis_title=x_title,
+            yaxis_title=y_title,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            hovermode='x unified',
+            font=dict(family="SF Pro Display, SF Pro Text, Noto Sans JP, sans-serif", color="#1C1C1F"),
+            title_font=dict(size=20, family="SF Pro Display, Noto Sans JP, sans-serif"),
+            legend=dict(
+                bgcolor="rgba(255,255,255,0.6)",
+                bordercolor="rgba(0,0,0,0.05)",
+                borderwidth=1,
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                x=0
+            ),
+            margin=dict(l=40, r=30, t=60, b=40)
+        )
+        fig.update_xaxes(showgrid=False, zeroline=False)
+        fig.update_yaxes(showgrid=True, gridcolor="rgba(28,28,31,0.08)", zeroline=False)
+        fig.update_traces(marker_line_width=0, selector=dict(type="bar"))
+        return fig
     
     @staticmethod
     def create_line_chart(
@@ -42,16 +68,9 @@ class Visualization:
                 marker=dict(size=6)
             ))
         
-        fig.update_layout(
-            title=title,
-            xaxis_title=x_title,
-            yaxis_title=y_title,
-            hovermode='x unified',
-            template='plotly_white',
-            font=dict(family="Noto Sans JP, Roboto, sans-serif"),
-            height=400
-        )
-        
+        fig.update_traces(line=dict(shape='spline'))
+        fig = Visualization._apply_base_layout(fig, title, x_title, y_title)
+        fig.update_layout(height=420)
         return fig
     
     @staticmethod
@@ -77,8 +96,6 @@ class Visualization:
             x = df[x_column]
             y = df[y_column]
         
-        fig = go.Figure()
-        
         if color_column:
             fig = px.bar(
                 df,
@@ -86,26 +103,20 @@ class Visualization:
                 y=y,
                 color=color_column,
                 orientation=orientation,
-                title=title,
                 color_discrete_sequence=Visualization.COLORS
             )
         else:
+            fig = go.Figure()
             fig.add_trace(go.Bar(
                 x=x,
                 y=y,
                 orientation=orientation,
-                marker_color=Visualization.PRIMARY_COLOR
+                marker_color=Visualization.PRIMARY_COLOR,
+                marker=dict(line=dict(width=0))
             ))
-            fig.update_layout(title=title)
         
-        fig.update_layout(
-            xaxis_title=x_title,
-            yaxis_title=y_title,
-            template='plotly_white',
-            font=dict(family="Noto Sans JP, Roboto, sans-serif"),
-            height=400
-        )
-        
+        fig = Visualization._apply_base_layout(fig, title, x_title, y_title)
+        fig.update_layout(height=420)
         return fig
     
     @staticmethod
@@ -126,12 +137,8 @@ class Visualization:
             marker_colors=Visualization.COLORS
         )])
         
-        fig.update_layout(
-            title=title,
-            template='plotly_white',
-            font=dict(family="Noto Sans JP, Roboto, sans-serif"),
-            height=400
-        )
+        fig = Visualization._apply_base_layout(fig, title)
+        fig.update_layout(height=400)
         
         return fig
     
@@ -155,12 +162,8 @@ class Visualization:
             marker_color=Visualization.PRIMARY_COLOR
         ))
         
-        fig.update_layout(
-            title=title,
-            template='plotly_white',
-            font=dict(family="Noto Sans JP, Roboto, sans-serif"),
-            height=500
-        )
+        fig = Visualization._apply_base_layout(fig, title)
+        fig.update_layout(height=480)
         
         return fig
     
@@ -187,11 +190,8 @@ class Visualization:
             color_discrete_sequence=Visualization.COLORS
         )
         
-        fig.update_layout(
-            template='plotly_white',
-            font=dict(family="Noto Sans JP, Roboto, sans-serif"),
-            height=400
-        )
+        fig = Visualization._apply_base_layout(fig, title or "")
+        fig.update_layout(height=420)
         
         return fig
     

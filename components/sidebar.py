@@ -1,22 +1,65 @@
 """サイドバーコンポーネント"""
 import streamlit as st
 from datetime import datetime, timedelta
-from typing import Tuple, Optional
-from utils.config import get_site_scope_options
+from typing import Tuple
+from utils.config import (
+    get_site_scope_options,
+    get_ga4_dimension_options,
+    get_ga4_metric_options,
+)
 
 
 def render_sidebar() -> Tuple[str, str, str, str]:
     """サイドバーをレンダリングして設定値を返す"""
     st.sidebar.title("⚙️ 設定")
-    st.sidebar.markdown(
-        """
-        <div class="ux-tip-card">
-            <div class="ux-tip-title">迷ったときのおすすめ設定</div>
-            <p style="margin-bottom:0;">最初に「過去30日間」を表示しています。どの期間で見るか悩む場合はひとまずこの設定で状況を確認できます。</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    
+    # カスタムレポート設定
+    metadata = st.session_state.get('ga4_metadata', {})
+    default_dimension_options = get_ga4_dimension_options()
+    default_metric_options = get_ga4_metric_options()
+    dimension_map = {opt['value']: opt['label'] for opt in default_dimension_options}
+    metric_map = {opt['value']: opt['label'] for opt in default_metric_options}
+    
+    available_dimensions = metadata.get('dimensions') or [opt['value'] for opt in default_dimension_options]
+    available_metrics = metadata.get('metrics') or [opt['value'] for opt in default_metric_options]
+    
+    current_config = st.session_state.get('custom_report_config', {
+        'dimensions': ['deviceCategory', 'eventName'],
+        'metrics': ['eventCount'],
+        'limit': 50
+    })
+    
+    def _format(value: str, mapping: dict) -> str:
+        return mapping.get(value, value)
+    
+    with st.sidebar.expander("🔧 カスタムレポート設定", expanded=False):
+        selected_dimensions = st.multiselect(
+            "ディメンション",
+            options=available_dimensions,
+            default=current_config.get('dimensions', []),
+            format_func=lambda value: _format(value, dimension_map),
+            key="custom_dimensions_select"
+        )
+        selected_metrics = st.multiselect(
+            "指標（必須）",
+            options=available_metrics,
+            default=current_config.get('metrics', []),
+            format_func=lambda value: _format(value, metric_map),
+            key="custom_metrics_select"
+        )
+        limit_value = st.number_input(
+            "取得件数",
+            min_value=1,
+            max_value=250,
+            value=current_config.get('limit', 50),
+            step=1
+        )
+        st.caption("GA4のディメンション/指標から必要なものだけを選び、カスタムタブで確認できます。")
+        st.session_state.custom_report_config = {
+            'dimensions': selected_dimensions,
+            'metrics': selected_metrics,
+            'limit': limit_value
+        }
     
     # モード選択
     mode = st.sidebar.radio(
@@ -24,24 +67,6 @@ def render_sidebar() -> Tuple[str, str, str, str]:
         ["ダッシュボード", "対話アシスタント"],
         key="mode_selection"
     )
-    
-    st.sidebar.divider()
-    
-    # データソース接続状態
-    st.sidebar.subheader("💾 データソース")
-    ga4_connected = 'ga4_client' in st.session_state and st.session_state.ga4_client is not None
-    gsc_connected = 'gsc_client' in st.session_state and st.session_state.gsc_client is not None
-
-    st.sidebar.markdown(
-        f"- GA4: {'接続済み ✅' if ga4_connected else '未接続 ⚠️'}"
-    )
-    st.sidebar.markdown(
-        f"- GSC: {'接続済み ✅' if gsc_connected else '未接続（任意）'}"
-    )
-    with st.sidebar.expander("接続ガイド（必要なときだけ開く）"):
-        st.sidebar.write("GA4/GSC 連携に問題がある場合は README の「セットアップ手順」を参照してください。")
-    
-    st.sidebar.divider()
     
     # 期間選択
     st.sidebar.subheader("📅 期間選択")
@@ -102,14 +127,6 @@ def render_sidebar() -> Tuple[str, str, str, str]:
     
     start_date = start_date_obj.strftime('%Y-%m-%d')
     end_date = end_date_obj.strftime('%Y-%m-%d')
-    
-    st.sidebar.divider()
-    
-    # 情報
-    st.sidebar.success("🎯 推奨: 期間プリセットは『過去30日間』が最もバランス良くトレンドを把握できます。")
-    st.sidebar.caption("データは最大48時間の遅延がある可能性があります。")
-    
-    st.sidebar.divider()
     
     # サイト領域選択
     st.sidebar.subheader("📂 サイト領域")

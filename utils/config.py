@@ -51,6 +51,27 @@ SITE_SCOPE_OPTIONS = [
     {'label': 'IFRS', 'value': 'IFRS'},
 ]
 
+GA4_DIMENSION_OPTIONS = [
+    {'label': '日付', 'value': 'date'},
+    {'label': '流入元', 'value': 'sessionSource'},
+    {'label': '流入チャネル', 'value': 'sessionDefaultChannelGroup'},
+    {'label': 'キャンペーン', 'value': 'sessionCampaignName'},
+    {'label': 'デバイス', 'value': 'deviceCategory'},
+    {'label': 'ランディングページ', 'value': 'landingPage'},
+    {'label': 'ページパス', 'value': 'pagePath'},
+    {'label': 'イベント名', 'value': 'eventName'},
+]
+
+GA4_METRIC_OPTIONS = [
+    {'label': 'セッション数', 'value': 'sessions'},
+    {'label': 'ユーザー数', 'value': 'totalUsers'},
+    {'label': 'ページビュー', 'value': 'screenPageViews'},
+    {'label': 'イベント数', 'value': 'eventCount'},
+    {'label': 'コンバージョン数', 'value': 'conversions'},
+    {'label': '直帰率', 'value': 'bounceRate'},
+    {'label': '平均セッション時間', 'value': 'averageSessionDuration'},
+]
+
 COMMON_CV_EVENTS = [
     'CV_資料請求',
     'CV_営業特別イベント予約',
@@ -182,6 +203,16 @@ def get_date_range_presets() -> Dict[str, int]:
 def get_site_scope_options() -> List[Dict[str, Any]]:
     """サイト領域の選択肢"""
     return SITE_SCOPE_OPTIONS
+
+
+def get_ga4_dimension_options() -> List[Dict[str, Any]]:
+    """カスタムレポート用ディメンション選択肢"""
+    return GA4_DIMENSION_OPTIONS
+
+
+def get_ga4_metric_options() -> List[Dict[str, Any]]:
+    """カスタムレポート用メトリクス選択肢"""
+    return GA4_METRIC_OPTIONS
 
 
 def get_cv_events_for_scope(site_scope: Optional[str]) -> List[str]:

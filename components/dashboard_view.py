@@ -10,37 +10,6 @@ from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Tuple, Any
 from utils.config import get_cv_events_for_scope, get_event_display_name, get_article_path_prefixes
 
-UX_TAB_TIPS = {
-    "overview": {
-        "title": "目標との差がひと目で分かる",
-        "message": "前の期間を仮の目標にして可視化しています。あとどれくらい伸ばせば良いかすぐ確認できます。"
-    },
-    "traffic": {
-        "title": "強みと課題を同時に把握",
-        "message": "好調なチャネルと注意が必要なチャネルを並べて表示し、次の打ち手を考えやすくしています。"
-    },
-    "device": {
-        "title": "注目すべきデバイスを絞り込み",
-        "message": "直帰率が高いデバイスを警告し、優先度の高い改善領域が一目で分かります。"
-    },
-    "event": {
-        "title": "次に追うべき記事が見つかる",
-        "message": "イベント別に記事を順位付けしているので、成果につながるコンテンツをすぐ特定できます。"
-    },
-    "realtime": {
-        "title": "更新の速さを明示",
-        "message": "ボタンひとつで即座に更新できることを示し、気軽に最新状況を確認できるようにしています。"
-    },
-    "utm": {
-        "title": "成果と課題を比較しやすく",
-        "message": "勝ち筋のキャンペーンと改善候補を同じ画面で見せ、意思決定をサポートします。"
-    },
-    "seo": {
-        "title": "検索データの裏付けを同時表示",
-        "message": "GA4とGSCの指標を合わせて表示し、『なぜこの動きになったのか』を納得して判断できます。"
-    }
-}
-
 
 @st.cache_data(ttl=300, hash_funcs={GA4Client: lambda client: client.property_id})  # 5分間キャッシュ
 def get_overview_metrics_cached(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
@@ -110,45 +79,6 @@ def _format_delta(metric: str, current: float, previous: float) -> tuple[str, st
     return delta_text, direction
 
 
-def _render_tab_tip(key: str) -> None:
-    tip = UX_TAB_TIPS.get(key)
-    if not tip:
-        return
-    st.markdown(
-        f"""
-        <div class="ux-tip-card">
-            <div class="ux-tip-title">{tip['title']}</div>
-            <p style="margin-bottom:0;">{tip['message']}</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-
-def _calculate_goal_target(current: float, previous: Optional[float]) -> float:
-    baseline = previous if previous and previous > 0 else current
-    if baseline <= 0:
-        baseline = 1
-    return baseline * 1.1
-
-
-def _render_goal_gradient_tracker(items: List[Dict[str, float]]) -> None:
-    if not items:
-        return
-    st.subheader("🎯 目標勾配トラッカー")
-    st.caption("前期間より10%アップを仮ターゲットにした進捗バーです。伸びしろの目安として使えます。")
-    for item in items:
-        current = item.get('current', 0) or 0
-        target = item.get('target', 0) or 0
-        if target <= 0:
-            target = max(current, 1)
-        progress = min(current / target, 1.0) if target else 0
-        st.progress(
-            progress,
-            text=f"{item['label']} {int(current):,} / {int(target):,}"
-        )
-
-
 def _render_kpi_cards(cards: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     selected_card: Optional[Dict[str, Any]] = None
     chunk_size = 4
@@ -165,10 +95,14 @@ def _render_kpi_cards(cards: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
                 st.markdown(
                     f"""
                     <div class="kpi-card">
-                        <div class="kpi-label">{card['label']}</div>
+                        <div class="kpi-card__meta">
+                            <div class="kpi-label">{card['label']}</div>
+                            <div class="kpi-chip">{card.get('chip_text', '')}</div>
+                        </div>
                         <div class="kpi-value">{value_text}</div>
-                        {f'<div class="kpi-prev">前期間: {prev_text}</div>' if prev_text else ''}
-                        {f'<div class="kpi-delta {delta_class}">前期間比 {delta_text}</div>' if delta_text else ''}
+                        <div class="kpi-divider"></div>
+                        <div class="kpi-prev">前期間: {prev_text if prev_text else '-'}</div>
+                        {f'<div class="kpi-delta {delta_class}">{delta_text}</div>' if delta_text else ''}
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -246,7 +180,6 @@ def _show_kpi_modal(card: Dict[str, Any], ga4_client: GA4Client, site_scope: Opt
 def render_overview_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
     """概要タブをレンダリング"""
     st.header("📊 概要")
-    _render_tab_tip("overview")
     
     # メトリクスを取得
     metrics = get_overview_metrics_cached(ga4_client, start_date, end_date, site_scope)
@@ -270,6 +203,7 @@ def render_overview_tab(ga4_client: GA4Client, start_date: str, end_date: str, s
         'previous_text': _format_metric_value('sessions', previous_sessions) if previous_sessions is not None else '',
         'delta_text': session_delta_text,
         'delta_class': session_delta_class,
+        'chip_text': '主要指標',
         'id': 'metric_sessions',
         'metric_type': 'metric',
         'metric_key': 'sessions'
@@ -286,6 +220,7 @@ def render_overview_tab(ga4_client: GA4Client, start_date: str, end_date: str, s
             'previous_text': f"{int(previous_value):,}" if previous_value is not None else '',
             'delta_text': delta_text,
             'delta_class': delta_class,
+            'chip_text': 'CV',
             'id': f"event_{event_name}",
             'metric_type': 'event',
             'metric_key': event_name
@@ -307,22 +242,6 @@ def render_overview_tab(ga4_client: GA4Client, start_date: str, end_date: str, s
             modal_info['site_scope'],
             modal_info['end_date']
         )
-
-    progress_items: List[Dict[str, float]] = []
-    progress_items.append({
-        'label': 'セッション数',
-        'current': current_sessions,
-        'target': _calculate_goal_target(current_sessions, previous_sessions)
-    })
-    for event_name in event_names:
-        current_value = current_events.get(event_name, 0)
-        previous_value = previous_events.get(event_name, 0) if previous_events else 0
-        progress_items.append({
-            'label': get_event_display_name(event_name),
-            'current': current_value,
-            'target': _calculate_goal_target(current_value, previous_value)
-        })
-    _render_goal_gradient_tracker(progress_items)
 
     st.divider()
     
@@ -349,7 +268,6 @@ def render_overview_tab(ga4_client: GA4Client, start_date: str, end_date: str, s
 def render_traffic_source_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
     """流入元タブをレンダリング"""
     st.header("🌐 流入元")
-    _render_tab_tip("traffic")
     
     # チャネルグループ別データ
     source_data = ga4_client.get_traffic_source(start_date, end_date, site_scope=site_scope)
@@ -372,16 +290,6 @@ def render_traffic_source_tab(ga4_client: GA4Client, start_date: str, end_date: 
             )
             st.plotly_chart(fig, width="stretch")
 
-            st.subheader("⚖️ チャネル健全性ビュー")
-            col_success, col_risk = st.columns(2)
-            top_channels = channel_group.head(5)
-            weak_channels = channel_group.sort_values('sessions', ascending=True).head(5)
-            with col_success:
-                st.caption("まずは好調チャネルを基準にして、他チャネルの位置づけを把握できます。")
-                st.dataframe(top_channels, width="stretch")
-            with col_risk:
-                st.caption("セッションが少ないチャネルは早めに手当てできるよう別枠で表示しています。")
-                st.dataframe(weak_channels, width="stretch")
         
         # 参照元/メディア別データ
         st.subheader("📋 参照元/メディア別データ")
@@ -402,7 +310,6 @@ def render_traffic_source_tab(ga4_client: GA4Client, start_date: str, end_date: 
 def render_device_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
     """デバイスタブをレンダリング"""
     st.header("📱 デバイス")
-    _render_tab_tip("device")
     
     device_data = ga4_client.get_device_data(start_date, end_date, site_scope=site_scope)
     
@@ -436,14 +343,6 @@ def render_device_tab(ga4_client: GA4Client, start_date: str, end_date: str, sit
             )
             st.plotly_chart(fig2, width="stretch")
 
-            st.subheader("⚠️ 注意すべきデバイス")
-            riskiest = device_summary.sort_values('bounceRate', ascending=False).head(1)
-            if not riskiest.empty:
-                row = riskiest.iloc[0]
-                st.warning(
-                    f"直帰率が最も高いデバイスは **{row['deviceCategory']}** ({row['bounceRate']*100:.1f}%) です。"
-                )
-            
             # 時系列データ
             if 'date' in device_data.columns:
                 st.subheader("📈 デバイス別時系列トレンド")
@@ -476,7 +375,6 @@ def render_device_tab(ga4_client: GA4Client, start_date: str, end_date: str, sit
 def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
     """イベントタブをレンダリング（記事別分析）"""
     st.header("📰 記事別イベント分析")
-    _render_tab_tip("event")
  
     event_names = get_cv_events_for_scope(site_scope)
     event_data = ga4_client.get_event_page_counts(
@@ -587,7 +485,6 @@ def get_realtime_data_cached(ga4_client: GA4Client):
 def render_realtime_tab(ga4_client: GA4Client, site_scope: Optional[str]):
     """リアルタイムタブをレンダリング"""
     st.header("⚡ リアルタイム")
-    _render_tab_tip("realtime")
     
     # リアルタイムデータを取得（30秒キャッシュ）
     realtime_data = get_realtime_data_cached(ga4_client)
@@ -630,7 +527,6 @@ def render_realtime_tab(ga4_client: GA4Client, site_scope: Optional[str]):
 def render_utm_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
     """UTMタブをレンダリング"""
     st.header("📢 UTMパラメータ")
-    _render_tab_tip("utm")
     
     utm_data = ga4_client.get_utm_data(start_date, end_date, site_scope=site_scope)
     
@@ -661,7 +557,6 @@ def render_utm_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_s
 def render_seo_tab(ga4_client: GA4Client, gsc_client: Optional[GSCClient], start_date: str, end_date: str, site_scope: Optional[str]):
     """SEOタブをレンダリング"""
     st.header("🔍 SEO")
-    _render_tab_tip("seo")
     
     if gsc_client is None:
         st.warning("Google Search Consoleが接続されていません。")
@@ -708,11 +603,59 @@ def render_seo_tab(ga4_client: GA4Client, gsc_client: Optional[GSCClient], start
         st.plotly_chart(fig, width="stretch")
 
 
-def render_dashboard_view(ga4_client: GA4Client, gsc_client: Optional[GSCClient], start_date: str, end_date: str, site_scope: Optional[str]):
+def render_custom_report_tab(
+    ga4_client: GA4Client,
+    start_date: str,
+    end_date: str,
+    site_scope: Optional[str],
+    custom_config: Optional[Dict[str, Any]]
+):
+    """カスタムレポートタブ"""
+    st.header("🧩 カスタムレポート")
+    if custom_config is None or not custom_config.get('metrics'):
+        st.info("設定ボタンからディメンションと指標を選択してください。")
+        return
+
+    dimensions = custom_config.get('dimensions', [])
+    metrics = custom_config.get('metrics', [])
+    limit = custom_config.get('limit', 50)
+
+    df = ga4_client.get_custom_report(
+        dimensions,
+        metrics,
+        start_date,
+        end_date,
+        site_scope=site_scope,
+        limit=limit
+    )
+
+    if df.empty:
+        st.info("該当データがありません。設定を見直してください。")
+        return
+
+    if 'date' in df.columns:
+        try:
+            df['date'] = pd.to_datetime(df['date'], format='%Y%m%d')
+        except Exception:
+            pass
+
+    st.write(f"ディメンション: {', '.join(dimensions) if dimensions else 'なし'}")
+    st.write(f"指標: {', '.join(metrics)}")
+    st.dataframe(df, width="stretch")
+
+
+def render_dashboard_view(
+    ga4_client: GA4Client,
+    gsc_client: Optional[GSCClient],
+    start_date: str,
+    end_date: str,
+    site_scope: Optional[str],
+    custom_config: Optional[Dict[str, Any]]
+):
     """ダッシュボードビューをレンダリング"""
     # タブを作成
     tabs = st.tabs([
-        "概要", "流入元", "デバイス", "イベント", "リアルタイム", "UTM", "SEO"
+        "概要", "流入元", "デバイス", "イベント", "リアルタイム", "UTM", "SEO", "カスタム"
     ])
     
     with tabs[0]:
@@ -735,4 +678,7 @@ def render_dashboard_view(ga4_client: GA4Client, gsc_client: Optional[GSCClient]
     
     with tabs[6]:
         render_seo_tab(ga4_client, gsc_client, start_date, end_date, site_scope)
+
+    with tabs[7]:
+        render_custom_report_tab(ga4_client, start_date, end_date, site_scope, custom_config)
 

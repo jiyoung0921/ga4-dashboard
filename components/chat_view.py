@@ -43,18 +43,6 @@ EXAMPLE_QUESTIONS = [
 ]
 
 
-def _render_chat_tip():
-    st.markdown(
-        """
-        <div class="ux-tip-card">
-            <div class="ux-tip-title">まずは気軽に質問してみましょう</div>
-            <p style="margin-bottom:0;">代表質問のボタンを押すだけでテンプレートが入力されます。最初の一歩を踏み出せるようにカード状に並べています。</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-
 def _calculate_previous_period(start_date: str, end_date: str) -> tuple[str, str]:
     start_dt = datetime.strptime(start_date, "%Y-%m-%d")
     end_dt = datetime.strptime(end_date, "%Y-%m-%d")
@@ -75,18 +63,26 @@ def _detect_event_from_query(query: str) -> Optional[str]:
 def render_chat_view(ga4_client: GA4Client, gsc_client: Optional[GSCClient], start_date: str, end_date: str, site_scope: Optional[str]):
     """チャットビューをレンダリング"""
     st.header("💬 対話アシスタント")
-    _render_chat_tip()
     
     initialize_chat_history()
 
-    st.markdown("**よく使う質問例**")
-    columns = st.columns(3)
-    for idx, question in enumerate(EXAMPLE_QUESTIONS):
-        col = columns[idx % 3]
-        if col.button(question, key=f"example_q_{idx}"):
-            st.session_state['chat_prefill'] = question
-        if (idx % 3 == 2) and (idx != len(EXAMPLE_QUESTIONS) - 1):
-            columns = st.columns(3)
+    with st.container():
+        st.markdown(
+            """
+            <div class="glass-panel chat-quick-panel">
+                <div class="chat-quick-panel__title">クイック質問</div>
+                <p class="chat-quick-panel__caption">よく使う質問から選ぶと、入力欄に自動で反映されます。</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        columns = st.columns(3)
+        for idx, question in enumerate(EXAMPLE_QUESTIONS):
+            col = columns[idx % 3]
+            if col.button(question, key=f"example_q_{idx}"):
+                st.session_state['chat_prefill'] = question
+            if (idx % 3 == 2) and (idx != len(EXAMPLE_QUESTIONS) - 1):
+                columns = st.columns(3)
     
     # チャット履歴を表示
     chat_container = st.container()

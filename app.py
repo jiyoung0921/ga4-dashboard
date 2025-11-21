@@ -54,6 +54,9 @@ def initialize_clients():
         except Exception as e:
             st.session_state.ga4_client = None
             st.error(f"GA4クライアントの初期化に失敗しました: {str(e)}")
+        else:
+            if 'ga4_metadata' not in st.session_state:
+                st.session_state.ga4_metadata = st.session_state.ga4_client.get_metadata_options()
     
     # GSCクライアント（オプション）
     if 'gsc_client' not in st.session_state:
@@ -67,6 +70,19 @@ def initialize_clients():
             st.session_state.gsc_client = None
             # GSCはオプションなのでエラーを表示しない
             pass
+
+    if (
+        st.session_state.get('ga4_client') is not None
+        and not st.session_state.get('ga4_metadata')
+    ):
+        st.session_state.ga4_metadata = st.session_state.ga4_client.get_metadata_options()
+
+    if 'custom_report_config' not in st.session_state:
+        st.session_state.custom_report_config = {
+            'dimensions': ['deviceCategory', 'eventName'],
+            'metrics': ['eventCount'],
+            'limit': 50
+        }
 
 
 def main():
@@ -125,7 +141,8 @@ def main():
             st.session_state.gsc_client,
             start_date,
             end_date,
-            site_scope
+            site_scope,
+            st.session_state.get('custom_report_config')
         )
     elif mode == "対話アシスタント":
         render_chat_view(
