@@ -3,6 +3,7 @@ from google.analytics.data_v1beta import BetaAnalyticsDataClient
 from google.analytics.data_v1beta.types import (
     RunReportRequest,
     RunRealtimeReportRequest,
+    GetMetadataRequest,
     Dimension,
     Metric,
     DateRange,
@@ -249,6 +250,22 @@ class GA4Client:
         except Exception as e:
             st.error(f"リアルタイムデータの取得に失敗しました: {str(e)}")
             return {'activeUsers': 0, 'topPages': []}
+
+    def get_metadata_options(self) -> Dict[str, List[str]]:
+        """利用可能なディメンション・メトリクス一覧を取得"""
+        try:
+            metadata = self.client.get_metadata(
+                request=GetMetadataRequest(name=f"properties/{self.property_id}/metadata")
+            )
+            dimensions = sorted(dim.api_name for dim in metadata.dimensions)
+            metrics = sorted(metric.api_name for metric in metadata.metrics)
+            return {
+                'dimensions': dimensions,
+                'metrics': metrics
+            }
+        except Exception as e:
+            st.warning(f"GA4メタデータの取得に失敗しました: {str(e)}")
+            return {'dimensions': [], 'metrics': []}
     
     def get_utm_data(self, start_date: str, end_date: str, site_scope: Optional[str] = None) -> pd.DataFrame:
         """UTMパラメータデータを取得"""
@@ -264,6 +281,28 @@ class GA4Client:
         )
         
         return df
+
+    def get_custom_report(
+        self,
+        dimensions: List[str],
+        metrics: List[str],
+        start_date: str,
+        end_date: str,
+        site_scope: Optional[str] = None,
+        limit: Optional[int] = 50
+    ) -> pd.DataFrame:
+        """任意ディメンション・メトリクスのレポートを取得"""
+        if not metrics:
+            return pd.DataFrame()
+
+        date_ranges = [{'start_date': start_date, 'end_date': end_date}]
+        return self.run_report(
+            dimensions=dimensions,
+            metrics=metrics,
+            date_ranges=date_ranges,
+            dimension_filter=self._build_site_scope_filter(site_scope),
+            limit=limit
+        )
     
     def get_page_data(self, start_date: str, end_date: str, limit: int = 20, site_scope: Optional[str] = None) -> pd.DataFrame:
         """ページデータを取得（SEO統合用）"""
@@ -346,6 +385,35 @@ class GA4Client:
 
         if not df.empty and 'date' in df.columns:
             df['date'] = pd.to_datetime(df['date'], format='%Y%m%d')
+        return df
+
+    def get_event_source_summary(
+        self,
+        start_date: str,
+        end_date: str,
+        site_scope: Optional[str] = None,
+        event_names: Optional[List[str]] = None,
+        limit: int = 500
+    ) -> pd.DataFrame:
+        """参照元別のイベント数を取得"""
+        dimension_filter = self._build_site_scope_filter(site_scope)
+
+        if event_names:
+            event_filter = FilterExpression(
+                filter=Filter(
+                    field_name="eventName",
+                    in_list_filter=Filter.InListFilter(values=event_names)
+                )
+            )
+            dimension_filter = self._merge_filters(dimension_filter, event_filter)
+
+        df = self.run_report(
+            dimensions=['sessionSourceMedium', 'eventName'],
+            metrics=['eventCount'],
+            date_ranges=[{'start_date': start_date, 'end_date': end_date}],
+            dimension_filter=dimension_filter,
+            limit=limit
+        )
         return df
 
     def get_event_page_counts(

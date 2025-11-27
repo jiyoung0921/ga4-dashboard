@@ -7,23 +7,20 @@ from modules.data_processor import DataProcessor
 from modules.visualization import Visualization
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+import re
 from typing import Optional, List, Dict, Tuple, Any
-from utils.config import get_cv_events_for_scope, get_event_display_name, get_article_path_prefixes
+from utils.config import (
+    get_cv_events_for_scope,
+    get_event_display_name,
+    get_article_path_prefixes,
+    get_site_scope_options
+)
 
 
 @st.cache_data(ttl=300, hash_funcs={GA4Client: lambda client: client.property_id})  # 5分間キャッシュ
 def get_overview_metrics_cached(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
     """概要メトリクスを取得（キャッシュ付き）"""
     return ga4_client.get_overview_metrics(start_date, end_date, site_scope=site_scope)
-
-
-@st.cache_data(ttl=300, hash_funcs={GA4Client: lambda client: client.property_id})
-def get_daily_traffic_cached(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
-    """日別トラフィックを取得（キャッシュ付き）"""
-    df = ga4_client.get_daily_traffic(start_date, end_date, site_scope)
-    if not df.empty and 'date' in df.columns:
-        df = df.sort_values('date')
-    return df
 
 
 @st.cache_data(ttl=300, hash_funcs={GA4Client: lambda client: client.property_id})
@@ -36,6 +33,56 @@ def get_event_counts_cached(
 ):
     """イベント数を取得（キャッシュ付き）"""
     return ga4_client.get_event_counts_by_names(start_date, end_date, list(event_names), site_scope)
+
+
+@st.cache_data(ttl=300, hash_funcs={GA4Client: lambda client: client.property_id})
+def get_event_sources_by_scope_cached(
+    ga4_client: GA4Client,
+    start_date: str,
+    end_date: str
+) -> pd.DataFrame:
+    """サイト領域ごとのイベント参照元サマリ"""
+    rows: List[pd.DataFrame] = []
+    for option in get_site_scope_options():
+        scope = option['value']
+        event_names = get_cv_events_for_scope(scope)
+        df = ga4_client.get_event_source_summary(
+            start_date,
+            end_date,
+            site_scope=scope,
+            event_names=event_names,
+            limit=300
+        )
+        if df.empty:
+            continue
+        df['eventCount'] = df['eventCount'].astype(float)
+        agg = (
+            df.groupby('sessionSourceMedium')['eventCount']
+            .sum()
+            .reset_index()
+            .sort_values('eventCount', ascending=False)
+            .head(10)
+        )
+        agg['siteScope'] = scope
+        rows.append(agg)
+    if rows:
+        return pd.concat(rows, ignore_index=True)
+    return pd.DataFrame(columns=['sessionSourceMedium', 'eventCount', 'siteScope'])
+
+
+USCPA_SOURCE_PATTERNS = [
+    {"label": "Google広告 (google / cpc)", "pattern": r"google\s*/\s*cpc"},
+    {"label": "Yahoo広告 (yahoo / cpc)", "pattern": r"yahoo\s*/\s*cpc"},
+    {"label": "Facebook広告 (facebook / banner)", "pattern": r"facebook\s*/\s*banner"},
+    {"label": "Facebook海外 (facebook_foreign / banner)", "pattern": r"facebook_foreign\s*/\s*banner"},
+    {"label": "アフィリエイト", "pattern": r"aff"},
+    {"label": "Google自然検索 (google / organic)", "pattern": r"google\s*/\s*organic"},
+    {"label": "Yahoo自然検索 (yahoo / organic)", "pattern": r"yahoo\s*/\s*organic"},
+    {"label": "ダイレクト", "pattern": r"direct"},
+    {"label": "リファラル", "pattern": r"referral"}
+]
+
+USCPA_COMBINED_PATTERN = "(" + "|".join(pattern['pattern'] for pattern in USCPA_SOURCE_PATTERNS) + ")"
 
 
 def _calculate_previous_period(start_date: str, end_date: str) -> tuple[str, str]:
@@ -77,6 +124,59 @@ def _format_delta(metric: str, current: float, previous: float) -> tuple[str, st
     else:
         delta_text = f"{sign}{delta_pct:.1f}%"
     return delta_text, direction
+
+
+def _render_event_source_summary(ga4_client: GA4Client, start_date: str, end_date: str) -> None:
+    summary_df = get_event_sources_by_scope_cached(ga4_client, start_date, end_date)
+    if summary_df.empty:
+        st.info("参照元別のイベントデータがありません。")
+        return
+    summary_df = summary_df.rename(columns={
+        'sessionSourceMedium': '参照元/メディア',
+        'eventCount': 'イベント数',
+        'siteScope': 'サイト領域'
+    })
+    st.subheader("📊 サイト領域別 イベント参照元（上位）")
+    st.dataframe(summary_df[['サイト領域', '参照元/メディア', 'イベント数']], width="stretch")
+
+
+def _render_uscpa_source_breakdown(ga4_client: GA4Client, start_date: str, end_date: str) -> None:
+    source_data = ga4_client.get_traffic_source(start_date, end_date, site_scope="USCPA")
+    if source_data.empty:
+        st.info("USCPAの参照元データがありません。")
+        return
+    source_data = source_data.copy()
+    source_data['sourceMedium'] = (
+        source_data['sessionSource'].fillna('(not set)').astype(str)
+        + " / " +
+        source_data['sessionMedium'].fillna('(not set)').astype(str)
+    )
+    source_data['sessions'] = source_data['sessions'].astype(float)
+
+    summary_rows = []
+    for pattern_conf in USCPA_SOURCE_PATTERNS:
+        regex = re.compile(pattern_conf['pattern'], re.IGNORECASE)
+        mask = source_data['sourceMedium'].apply(lambda val: bool(regex.search(val)))
+        total = source_data.loc[mask, 'sessions'].sum()
+        summary_rows.append({
+            'カテゴリ': pattern_conf['label'],
+            'セッション数': int(total)
+        })
+
+    summary_df = pd.DataFrame(summary_rows).sort_values('セッション数', ascending=False)
+
+    combined_mask = source_data['sourceMedium'].str.contains(USCPA_COMBINED_PATTERN, case=False, regex=True)
+    detail_df = (
+        source_data.loc[combined_mask, ['sourceMedium', 'sessions']]
+        .rename(columns={'sourceMedium': '参照元/メディア', 'sessions': 'セッション数'})
+        .sort_values('セッション数', ascending=False)
+    )
+
+    st.subheader("🧭 USCPA 参照元/メディア別セッション")
+    st.dataframe(summary_df, width="stretch")
+    if not detail_df.empty:
+        st.caption("一致した参照元/メディアの詳細")
+        st.dataframe(detail_df, width="stretch")
 
 
 def _render_kpi_cards(cards: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
@@ -185,8 +285,7 @@ def render_overview_tab(ga4_client: GA4Client, start_date: str, end_date: str, s
     metrics = get_overview_metrics_cached(ga4_client, start_date, end_date, site_scope)
     prev_start, prev_end = _calculate_previous_period(start_date, end_date)
     previous_metrics = get_overview_metrics_cached(ga4_client, prev_start, prev_end, site_scope)
-    daily_traffic = get_daily_traffic_cached(ga4_client, start_date, end_date, site_scope)
- 
+
     event_names = get_cv_events_for_scope(site_scope)
     event_tuple = tuple(event_names)
     current_events = get_event_counts_cached(ga4_client, start_date, end_date, event_tuple, site_scope)
@@ -244,25 +343,10 @@ def render_overview_tab(ga4_client: GA4Client, start_date: str, end_date: str, s
         )
 
     st.divider()
-    
-    # 日別トラフィックトレンド
-    if not daily_traffic.empty:
-        st.subheader("📈 日別トラフィックトレンド")
-        fig = Visualization.create_line_chart(
-            daily_traffic,
-            'date',
-            ['sessions', 'totalUsers', 'screenPageViews'],
-            "日別トラフィック",
-            "日付",
-            "数"
-        )
-        st.plotly_chart(fig, width="stretch")
-        
-        # データテーブル
-        with st.expander("データを表示"):
-            st.dataframe(daily_traffic, width="stretch")
-    else:
-        st.info("データがありません")
+    _render_event_source_summary(ga4_client, start_date, end_date)
+
+    if site_scope == "USCPA":
+        _render_uscpa_source_breakdown(ga4_client, start_date, end_date)
 
 
 def render_traffic_source_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
