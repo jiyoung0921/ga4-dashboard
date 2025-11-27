@@ -54,9 +54,6 @@ def initialize_clients():
         except Exception as e:
             st.session_state.ga4_client = None
             st.error(f"GA4クライアントの初期化に失敗しました: {str(e)}")
-        else:
-            if 'ga4_metadata' not in st.session_state:
-                st.session_state.ga4_metadata = st.session_state.ga4_client.get_metadata_options()
     
     # GSCクライアント（オプション）
     if 'gsc_client' not in st.session_state:
