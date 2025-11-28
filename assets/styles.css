@@ -498,8 +498,8 @@ section[data-testid="stSidebar"] .stMultiSelect > div > div {
 .stButton > button {
     border-radius: var(--radius-sm);
     font-weight: 600;
-    font-size: 0.85rem;
-    padding: 8px 18px;
+    font-size: 0.8rem;
+    padding: 8px 14px;
     transition: all 0.2s ease;
     font-family: var(--font-sans);
 }
@@ -508,13 +508,12 @@ section[data-testid="stSidebar"] .stMultiSelect > div > div {
     background: var(--primary);
     border: none;
     color: white;
-    box-shadow: 0 4px 12px rgba(124, 106, 239, 0.25);
+    box-shadow: 0 2px 8px rgba(124, 106, 239, 0.2);
 }
 
 .stButton > button[kind="primary"]:hover {
     background: var(--primary-dark);
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(124, 106, 239, 0.35);
+    box-shadow: 0 4px 12px rgba(124, 106, 239, 0.3);
 }
 
 .stButton > button[kind="secondary"] {
@@ -526,6 +525,30 @@ section[data-testid="stSidebar"] .stMultiSelect > div > div {
 .stButton > button[kind="secondary"]:hover {
     background: var(--surface-active);
     border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* Sidebar segment buttons */
+section[data-testid="stSidebar"] .stButton > button {
+    font-size: 0.75rem;
+    padding: 8px 10px;
+    border-radius: 10px;
+}
+
+section[data-testid="stSidebar"] .stButton > button[kind="primary"] {
+    background: var(--primary);
+    box-shadow: 0 2px 8px rgba(124, 106, 239, 0.25);
+}
+
+section[data-testid="stSidebar"] .stButton > button[kind="secondary"] {
+    background: #F7FAFC;
+    border: 1px solid #E2E8F0;
+    color: #718096;
+}
+
+section[data-testid="stSidebar"] .stButton > button[kind="secondary"]:hover {
+    background: rgba(124, 106, 239, 0.08);
+    border-color: var(--primary-light);
     color: var(--primary);
 }
 
@@ -833,6 +856,52 @@ hr {
     background: var(--primary);
     color: white;
     border-color: var(--primary);
+}
+
+/* ===== POPOVER (for header chips) ===== */
+[data-testid="stPopover"] > div {
+    border-radius: var(--radius-lg) !important;
+    box-shadow: var(--shadow-lg) !important;
+    border: 1px solid var(--border-light) !important;
+    padding: 4px !important;
+}
+
+[data-testid="stPopover"] button {
+    border-radius: var(--radius-sm) !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    padding: 8px 14px !important;
+    background: rgba(124, 106, 239, 0.08) !important;
+    border: none !important;
+    color: var(--primary) !important;
+    transition: all 0.2s ease !important;
+}
+
+[data-testid="stPopover"] button:hover {
+    background: rgba(124, 106, 239, 0.15) !important;
+}
+
+/* Header chip popover trigger */
+.main [data-testid="stPopover"] > button {
+    background: rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(8px) !important;
+    border-radius: 999px !important;
+    padding: 6px 14px !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    color: white !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    transition: all 0.2s ease !important;
+}
+
+.main [data-testid="stPopover"] > button:hover {
+    background: rgba(255, 255, 255, 0.35) !important;
+    border-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* ===== HIDE DEFAULT RADIO BUTTONS ===== */
+section[data-testid="stSidebar"] .stRadio {
+    display: none;
 }
 
 /* ===== RESPONSIVE ===== */

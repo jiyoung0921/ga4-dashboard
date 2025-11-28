@@ -1,12 +1,145 @@
 """ヘッダーヒーローコンポーネント - Soft Friendly Design with Lucide Icons"""
 import streamlit as st
-from datetime import datetime
-from typing import Optional
+from datetime import datetime, timedelta
+from typing import Optional, Tuple
 from components.icons import Icons
 
 
+def render_header_with_controls(
+    site_scope: Optional[str], 
+    start_date: str, 
+    end_date: str,
+    site_scope_options: list
+) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    """
+    ヒーローヘッダーを描画し、クリック可能なチップで期間・領域を変更可能に
+    Returns: (new_start_date, new_end_date, new_site_scope) - 変更があった場合のみ値を返す
+    """
+    scope_label = site_scope if site_scope else "全サイト"
+    start_display = datetime.strptime(start_date, "%Y-%m-%d").strftime("%Y年%m月%d日")
+    end_display = datetime.strptime(end_date, "%Y-%m-%d").strftime("%Y年%m月%d日")
+    current_time = datetime.now().strftime('%Y/%m/%d %H:%M')
+    
+    new_start = None
+    new_end = None
+    new_scope = None
+
+    # ヒーローバナー部分（静的）
+    st.markdown(
+        f"""
+        <div class="hero-banner">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
+                <div>
+                    <div style="
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        font-size: 0.7rem;
+                        font-weight: 600;
+                        letter-spacing: 0.05em;
+                        opacity: 0.9;
+                        margin-bottom: 6px;
+                    ">
+                        {Icons.activity(12, "white")}
+                        Analytics Dashboard
+                    </div>
+                    <div class="hero-title">
+                        {Icons.pie_chart(24, "white")}
+                        {scope_label}
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="
+                        display: flex;
+                        align-items: center;
+                        gap: 5px;
+                        font-size: 0.7rem;
+                        opacity: 0.75;
+                        margin-bottom: 3px;
+                        justify-content: flex-end;
+                    ">
+                        {Icons.refresh_cw(10, "white")}
+                        最終更新
+                    </div>
+                    <div style="
+                        font-size: 0.85rem;
+                        font-weight: 600;
+                    ">{current_time}</div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    # インタラクティブなチップ（Streamlit ウィジェット）
+    col1, col2, col3 = st.columns([2, 1, 3])
+    
+    with col1:
+        # 期間選択ポップオーバー
+        with st.popover(f"📅 {start_display} 〜 {end_display}", use_container_width=True):
+            st.markdown("##### 期間を選択")
+            today = datetime.now().date()
+            
+            # クイック選択ボタン
+            quick_cols = st.columns(3)
+            with quick_cols[0]:
+                if st.button("過去7日", key="quick_7d", use_container_width=True):
+                    new_start = (today - timedelta(days=6)).strftime("%Y-%m-%d")
+                    new_end = today.strftime("%Y-%m-%d")
+            with quick_cols[1]:
+                if st.button("過去30日", key="quick_30d", use_container_width=True):
+                    new_start = (today - timedelta(days=29)).strftime("%Y-%m-%d")
+                    new_end = today.strftime("%Y-%m-%d")
+            with quick_cols[2]:
+                if st.button("今月", key="quick_month", use_container_width=True):
+                    new_start = today.replace(day=1).strftime("%Y-%m-%d")
+                    new_end = today.strftime("%Y-%m-%d")
+            
+            st.divider()
+            
+            # カスタム日付選択
+            date_cols = st.columns(2)
+            with date_cols[0]:
+                selected_start = st.date_input(
+                    "開始日",
+                    value=datetime.strptime(start_date, "%Y-%m-%d").date(),
+                    key="header_start_date"
+                )
+            with date_cols[1]:
+                selected_end = st.date_input(
+                    "終了日",
+                    value=datetime.strptime(end_date, "%Y-%m-%d").date(),
+                    key="header_end_date"
+                )
+            
+            if st.button("適用", key="apply_date", type="primary", use_container_width=True):
+                new_start = selected_start.strftime("%Y-%m-%d")
+                new_end = selected_end.strftime("%Y-%m-%d")
+    
+    with col2:
+        # サイト領域選択ポップオーバー
+        scope_options = [opt['label'] for opt in site_scope_options]
+        current_index = next((i for i, opt in enumerate(site_scope_options) if opt['value'] == site_scope), 0)
+        
+        with st.popover(f"🏷️ {scope_label}", use_container_width=True):
+            st.markdown("##### サイト領域を選択")
+            for i, opt in enumerate(site_scope_options):
+                is_selected = opt['value'] == site_scope
+                if st.button(
+                    f"{'✓ ' if is_selected else '　'}{opt['label']}", 
+                    key=f"scope_{opt['value']}",
+                    use_container_width=True,
+                    type="primary" if is_selected else "secondary"
+                ):
+                    if not is_selected:
+                        new_scope = opt['value']
+    
+    return new_start, new_end, new_scope
+
+
 def render_header(site_scope: Optional[str], start_date: str, end_date: str) -> None:
-    """やさしい雰囲気のヒーローヘッダーを描画"""
+    """やさしい雰囲気のヒーローヘッダーを描画（従来互換）"""
     scope_label = site_scope if site_scope else "全サイト"
     start_display = datetime.strptime(start_date, "%Y-%m-%d").strftime("%Y年%m月%d日")
     end_display = datetime.strptime(end_date, "%Y-%m-%d").strftime("%Y年%m月%d日")
