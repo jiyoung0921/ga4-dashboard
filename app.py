@@ -19,8 +19,8 @@ from modules.gsc_client import GSCClient
 from components.sidebar import render_sidebar
 from components.dashboard_view import render_dashboard_view
 from components.chat_view import render_chat_view
-from components.header import render_header_with_controls
-from utils.config import get_ga4_property_id, get_gsc_site_url, get_site_scope_options
+from components.header import render_header
+from utils.config import get_ga4_property_id, get_gsc_site_url
 from pathlib import Path
 
 
@@ -128,25 +128,8 @@ def main():
         """)
         return
 
-    # ヒーローヘッダー（クリック可能なチップ付き）
-    site_scope_options = get_site_scope_options()
-    new_start, new_end, new_scope = render_header_with_controls(
-        site_scope, start_date, end_date, site_scope_options
-    )
-    
-    # ヘッダーからの変更があれば適用してリロード
-    if new_start or new_end or new_scope:
-        if new_start:
-            st.session_state.header_start_date = new_start
-        if new_end:
-            st.session_state.header_end_date = new_end
-        if new_scope:
-            # サイト領域の変更はサイドバーの選択を更新
-            for i, opt in enumerate(site_scope_options):
-                if opt['value'] == new_scope:
-                    st.session_state.site_scope = i
-                    break
-        st.rerun()
+    # ヒーローヘッダー
+    render_header(site_scope, start_date, end_date)
 
     # モードに応じて表示
     if mode == "ダッシュボード":
