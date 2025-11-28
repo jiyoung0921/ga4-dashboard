@@ -23,7 +23,7 @@ def render_header_with_controls(
     new_end = None
     new_scope = None
 
-    # ヒーローバナー上部（静的HTML）
+    # ヒーローバナー（静的HTML）
     st.markdown(
         f"""
         <div class="hero-banner">
@@ -67,76 +67,67 @@ def render_header_with_controls(
                 </div>
             </div>
             <div class="hero-meta">
-        """,
-        unsafe_allow_html=True
-    )
-    
-    # チップ部分（Streamlit popover で機能追加）
-    col1, col2, col3 = st.columns([2.5, 1.5, 4])
-    
-    with col1:
-        # 期間選択
-        with st.popover(f"📅 {start_display} 〜 {end_display}"):
-            st.markdown("##### 期間を選択")
-            today = datetime.now().date()
-            
-            quick_cols = st.columns(3)
-            with quick_cols[0]:
-                if st.button("過去7日", key="quick_7d", use_container_width=True):
-                    new_start = (today - timedelta(days=6)).strftime("%Y-%m-%d")
-                    new_end = today.strftime("%Y-%m-%d")
-            with quick_cols[1]:
-                if st.button("過去30日", key="quick_30d", use_container_width=True):
-                    new_start = (today - timedelta(days=29)).strftime("%Y-%m-%d")
-                    new_end = today.strftime("%Y-%m-%d")
-            with quick_cols[2]:
-                if st.button("今月", key="quick_month", use_container_width=True):
-                    new_start = today.replace(day=1).strftime("%Y-%m-%d")
-                    new_end = today.strftime("%Y-%m-%d")
-            
-            st.divider()
-            
-            date_cols = st.columns(2)
-            with date_cols[0]:
-                selected_start = st.date_input(
-                    "開始日",
-                    value=datetime.strptime(start_date, "%Y-%m-%d").date(),
-                    key="header_start_date"
-                )
-            with date_cols[1]:
-                selected_end = st.date_input(
-                    "終了日",
-                    value=datetime.strptime(end_date, "%Y-%m-%d").date(),
-                    key="header_end_date"
-                )
-            
-            if st.button("適用", key="apply_date", type="primary", use_container_width=True):
-                new_start = selected_start.strftime("%Y-%m-%d")
-                new_end = selected_end.strftime("%Y-%m-%d")
-    
-    with col2:
-        # サイト領域選択
-        with st.popover(f"🏷️ {scope_label}"):
-            st.markdown("##### サイト領域を選択")
-            for opt in site_scope_options:
-                is_selected = opt['value'] == site_scope
-                if st.button(
-                    f"{'✓ ' if is_selected else '　'}{opt['label']}", 
-                    key=f"scope_{opt['value']}",
-                    use_container_width=True,
-                    type="primary" if is_selected else "secondary"
-                ):
-                    if not is_selected:
-                        new_scope = opt['value']
-    
-    # ヒーローバナー閉じタグ
-    st.markdown(
-        """
+                <span class="hero-chip">
+                    {Icons.calendar_range(12, "white")}
+                    {start_display} 〜 {end_display}
+                </span>
+                <span class="hero-chip">
+                    {Icons.layers(12, "white")}
+                    {scope_label}
+                </span>
             </div>
         </div>
         """,
         unsafe_allow_html=True
     )
+    
+    # 機能用の隠しポップオーバー（見た目に影響しない）
+    with st.expander("📅 期間を変更", expanded=False):
+        today = datetime.now().date()
+        
+        quick_cols = st.columns(3)
+        with quick_cols[0]:
+            if st.button("過去7日", key="quick_7d", use_container_width=True):
+                new_start = (today - timedelta(days=6)).strftime("%Y-%m-%d")
+                new_end = today.strftime("%Y-%m-%d")
+        with quick_cols[1]:
+            if st.button("過去30日", key="quick_30d", use_container_width=True):
+                new_start = (today - timedelta(days=29)).strftime("%Y-%m-%d")
+                new_end = today.strftime("%Y-%m-%d")
+        with quick_cols[2]:
+            if st.button("今月", key="quick_month", use_container_width=True):
+                new_start = today.replace(day=1).strftime("%Y-%m-%d")
+                new_end = today.strftime("%Y-%m-%d")
+        
+        date_cols = st.columns(2)
+        with date_cols[0]:
+            selected_start = st.date_input(
+                "開始日",
+                value=datetime.strptime(start_date, "%Y-%m-%d").date(),
+                key="header_start_date"
+            )
+        with date_cols[1]:
+            selected_end = st.date_input(
+                "終了日",
+                value=datetime.strptime(end_date, "%Y-%m-%d").date(),
+                key="header_end_date"
+            )
+        
+        if st.button("適用", key="apply_date", type="primary", use_container_width=True):
+            new_start = selected_start.strftime("%Y-%m-%d")
+            new_end = selected_end.strftime("%Y-%m-%d")
+    
+    with st.expander("🏷️ サイト領域を変更", expanded=False):
+        for opt in site_scope_options:
+            is_selected = opt['value'] == site_scope
+            if st.button(
+                f"{'✓ ' if is_selected else '　'}{opt['label']}", 
+                key=f"scope_{opt['value']}",
+                use_container_width=True,
+                type="primary" if is_selected else "secondary"
+            ):
+                if not is_selected:
+                    new_scope = opt['value']
     
     return new_start, new_end, new_scope
 

@@ -709,33 +709,6 @@ hr {
 }
 
 
-/* ===== POPOVER CHIPS IN HERO ===== */
-.hero-banner [data-testid="stPopover"] > button,
-.hero-meta [data-testid="stPopover"] > button {
-    background: rgba(255, 255, 255, 0.22) !important;
-    backdrop-filter: blur(8px) !important;
-    border-radius: 999px !important;
-    padding: 6px 14px !important;
-    font-size: 0.8rem !important;
-    font-weight: 500 !important;
-    color: white !important;
-    border: 1px solid rgba(255, 255, 255, 0.3) !important;
-    transition: all 0.2s ease !important;
-}
-
-.hero-banner [data-testid="stPopover"] > button:hover,
-.hero-meta [data-testid="stPopover"] > button:hover {
-    background: rgba(255, 255, 255, 0.35) !important;
-    border-color: rgba(255, 255, 255, 0.5) !important;
-}
-
-[data-testid="stPopover"] > div {
-    border-radius: 16px !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1) !important;
-    border: 1px solid #E2E8F0 !important;
-    padding: 12px !important;
-}
-
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
     .main .block-container {
