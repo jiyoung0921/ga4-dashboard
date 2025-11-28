@@ -193,12 +193,6 @@ section[data-testid="stSidebar"] .stRadio[data-testid="stRadio"]:has([data-basew
     margin-top: 16px;
 }
 
-/* Container for interactive chips inside hero banner */
-.hero-chips-container {
-    margin-top: 16px;
-    position: relative;
-    z-index: 10;
-}
 
 .hero-chip {
     display: inline-flex;
@@ -714,66 +708,6 @@ hr {
     color: var(--text-primary);
 }
 
-/* ===== POPOVER (for header chips) ===== */
-[data-testid="stPopover"] > div {
-    border-radius: var(--radius-lg) !important;
-    box-shadow: var(--shadow-lg) !important;
-    border: 1px solid var(--border-light) !important;
-    padding: 12px !important;
-}
-
-/* Hero integrated - title popover (site scope) - BIG TITLE style */
-.hero-integrated [data-testid="column"]:first-child [data-testid="stPopover"] > button {
-    background: transparent !important;
-    border: none !important;
-    padding: 4px 0 !important;
-    font-family: var(--font-display) !important;
-    font-size: 1.5rem !important;
-    font-weight: 700 !important;
-    color: white !important;
-    cursor: pointer !important;
-    transition: opacity 0.2s ease !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-}
-
-.hero-integrated [data-testid="column"]:first-child [data-testid="stPopover"] > button:hover {
-    opacity: 0.85 !important;
-    background: transparent !important;
-}
-
-/* Hero integrated - date chip popover */
-.hero-integrated [data-testid="column"]:nth-child(2) [data-testid="stPopover"] > button {
-    background: rgba(255, 255, 255, 0.22) !important;
-    backdrop-filter: blur(8px) !important;
-    border-radius: 999px !important;
-    padding: 8px 16px !important;
-    font-size: 0.85rem !important;
-    font-weight: 500 !important;
-    color: white !important;
-    border: 1px solid rgba(255, 255, 255, 0.3) !important;
-    transition: all 0.2s ease !important;
-}
-
-.hero-integrated [data-testid="column"]:nth-child(2) [data-testid="stPopover"] > button:hover {
-    background: rgba(255, 255, 255, 0.35) !important;
-    border-color: rgba(255, 255, 255, 0.5) !important;
-}
-
-/* Make columns inside hero transparent */
-.hero-integrated [data-testid="column"] {
-    background: transparent !important;
-}
-
-/* General popover button style (outside hero) */
-.main [data-testid="stPopover"] > button {
-    border-radius: var(--radius-sm) !important;
-    padding: 8px 14px !important;
-    font-size: 0.85rem !important;
-    font-weight: 500 !important;
-    transition: all 0.2s ease !important;
-}
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {

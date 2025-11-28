@@ -19,8 +19,8 @@ from modules.gsc_client import GSCClient
 from components.sidebar import render_sidebar
 from components.dashboard_view import render_dashboard_view
 from components.chat_view import render_chat_view
-from components.header import render_header_with_controls
-from utils.config import get_ga4_property_id, get_gsc_site_url, get_site_scope_options
+from components.header import render_header
+from utils.config import get_ga4_property_id, get_gsc_site_url
 from pathlib import Path
 
 
@@ -92,17 +92,6 @@ def main():
     # サイドバーをレンダリング
     mode, start_date, end_date, site_scope = render_sidebar()
     
-    # セッションステートで期間・領域を管理（ヘッダーからの変更を反映）
-    if 'override_start_date' in st.session_state:
-        start_date = st.session_state.override_start_date
-        del st.session_state.override_start_date
-    if 'override_end_date' in st.session_state:
-        end_date = st.session_state.override_end_date
-        del st.session_state.override_end_date
-    if 'override_site_scope' in st.session_state:
-        site_scope = st.session_state.override_site_scope
-        del st.session_state.override_site_scope
-    
     # メインコンテンツ
     if st.session_state.ga4_client is None:
         st.error("""
@@ -139,21 +128,8 @@ def main():
         """)
         return
 
-    # ヒーローヘッダー（クリック可能なチップ付き）
-    site_scope_options = get_site_scope_options()
-    new_start, new_end, new_scope = render_header_with_controls(
-        site_scope, start_date, end_date, site_scope_options
-    )
-    
-    # ヘッダーからの変更があれば適用してリロード
-    if new_start or new_end or new_scope:
-        if new_start:
-            st.session_state.override_start_date = new_start
-        if new_end:
-            st.session_state.override_end_date = new_end
-        if new_scope:
-            st.session_state.override_site_scope = new_scope
-        st.rerun()
+    # ヒーローヘッダー
+    render_header(site_scope, start_date, end_date)
 
     # モードに応じて表示
     if mode == "ダッシュボード":
