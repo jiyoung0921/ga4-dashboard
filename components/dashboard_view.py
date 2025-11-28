@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 import re
 from typing import Optional, List, Dict, Tuple, Any
 from textwrap import dedent
+from components.icons import Icons
 from utils.config import (
     get_cv_events_for_scope,
     get_event_display_name,
@@ -69,6 +70,39 @@ def get_event_sources_by_scope_cached(
     if rows:
         return pd.concat(rows, ignore_index=True)
     return pd.DataFrame(columns=['sessionSourceMedium', 'eventCount', 'siteScope'])
+
+
+SUBHEADER_ICON_COLOR = "#7C6AEF"
+
+
+def _render_subsection_heading(icon_svg: str, text: str) -> None:
+    """Lucideアイコン付きのサブヘッダーを描画"""
+    st.markdown(
+        f"""
+        <div style="
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 1.25rem 0 0.75rem;
+        ">
+            <span style="
+                width: 32px;
+                height: 32px;
+                border-radius: 10px;
+                background: rgba(124, 106, 239, 0.12);
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            ">{icon_svg}</span>
+            <span style="
+                font-size: 1rem;
+                font-weight: 700;
+                color: #2D3748;
+            ">{text}</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
 USCPA_SOURCE_PATTERNS = [
@@ -137,7 +171,10 @@ def _render_event_source_summary(ga4_client: GA4Client, start_date: str, end_dat
         'eventCount': 'イベント数',
         'siteScope': 'サイト領域'
     })
-    st.subheader("📊 サイト領域別 イベント参照元（上位）")
+    _render_subsection_heading(
+        Icons.layers(18, SUBHEADER_ICON_COLOR),
+        "サイト領域別 イベント参照元（上位）"
+    )
     st.dataframe(summary_df[['サイト領域', '参照元/メディア', 'イベント数']], width="stretch")
 
 
@@ -173,7 +210,10 @@ def _render_uscpa_source_breakdown(ga4_client: GA4Client, start_date: str, end_d
         .sort_values('セッション数', ascending=False)
     )
 
-    st.subheader("🧭 USCPA 参照元/メディア別セッション")
+    _render_subsection_heading(
+        Icons.map_pin(18, SUBHEADER_ICON_COLOR),
+        "USCPA 参照元/メディア別セッション"
+    )
     st.dataframe(summary_df, width="stretch")
     if not detail_df.empty:
         st.caption("一致した参照元/メディアの詳細")
@@ -356,7 +396,10 @@ def render_traffic_source_tab(ga4_client: GA4Client, start_date: str, end_date: 
             channel_group = source_data.groupby('sessionDefaultChannelGroup')['sessions'].sum().reset_index()
             channel_group = channel_group.sort_values('sessions', ascending=False)
             
-            st.subheader("📊 チャネルグループ別セッション数")
+            _render_subsection_heading(
+                Icons.share_2(18, SUBHEADER_ICON_COLOR),
+                "チャネルグループ別セッション数"
+            )
             fig = Visualization.create_bar_chart(
                 channel_group,
                 'sessionDefaultChannelGroup',
@@ -370,14 +413,20 @@ def render_traffic_source_tab(ga4_client: GA4Client, start_date: str, end_date: 
 
         
         # 参照元/メディア別データ
-        st.subheader("📋 参照元/メディア別データ")
+        _render_subsection_heading(
+            Icons.file_text(18, SUBHEADER_ICON_COLOR),
+            "参照元/メディア別データ"
+        )
         if 'sessionSource' in source_data.columns and 'sessionMedium' in source_data.columns:
             source_medium = source_data.groupby(['sessionSource', 'sessionMedium'])['sessions'].sum().reset_index()
             source_medium = source_medium.sort_values('sessions', ascending=False).head(20)
             st.dataframe(source_medium, width="stretch")
         
         # ランディングページ
-        st.subheader("🪧 ランディングページ")
+        _render_subsection_heading(
+            Icons.external_link(18, SUBHEADER_ICON_COLOR),
+            "ランディングページ"
+        )
         landing_pages = ga4_client.get_landing_pages(start_date, end_date, limit=10, site_scope=site_scope)
         if not landing_pages.empty:
             st.dataframe(landing_pages, width="stretch")
@@ -400,7 +449,10 @@ def render_device_tab(ga4_client: GA4Client, start_date: str, end_date: str, sit
                 'bounceRate': 'mean'
             }).reset_index()
             
-            st.subheader("📊 デバイスカテゴリ別セッション数")
+            _render_subsection_heading(
+                Icons.smartphone(18, SUBHEADER_ICON_COLOR),
+                "デバイスカテゴリ別セッション数"
+            )
             fig = Visualization.create_bar_chart(
                 device_summary,
                 'deviceCategory',
@@ -411,7 +463,10 @@ def render_device_tab(ga4_client: GA4Client, start_date: str, end_date: str, sit
             )
             st.plotly_chart(fig, width="stretch")
             
-            st.subheader("📊 デバイスカテゴリ別直帰率")
+            _render_subsection_heading(
+                Icons.smartphone(18, SUBHEADER_ICON_COLOR),
+                "デバイスカテゴリ別直帰率"
+            )
             fig2 = Visualization.create_bar_chart(
                 device_summary,
                 'deviceCategory',
@@ -424,7 +479,10 @@ def render_device_tab(ga4_client: GA4Client, start_date: str, end_date: str, sit
 
             # 時系列データ
             if 'date' in device_data.columns:
-                st.subheader("📈 デバイス別時系列トレンド")
+                _render_subsection_heading(
+                    Icons.line_chart(18, SUBHEADER_ICON_COLOR),
+                    "デバイス別時系列トレンド"
+                )
                 fig3 = go.Figure()
                 colors = ['#5B4FDB', '#4A90E2', '#50C878']
                 for i, device in enumerate(device_data['deviceCategory'].unique()):
@@ -591,7 +649,10 @@ def render_realtime_tab(ga4_client: GA4Client, site_scope: Optional[str]):
     st.divider()
     
     # トップページ
-    st.subheader("🔥 リアルタイムトップページ")
+    _render_subsection_heading(
+        Icons.activity(18, SUBHEADER_ICON_COLOR),
+        "リアルタイムトップページ"
+    )
     top_pages = realtime_data.get('topPages', [])
     if top_pages:
         top_pages_df = pd.DataFrame(top_pages)
@@ -600,9 +661,26 @@ def render_realtime_tab(ga4_client: GA4Client, site_scope: Optional[str]):
         st.info("データがありません")
     
     # 自動更新
-    if st.button("🔄 更新"):
-        get_realtime_data_cached.clear()
-        st.rerun()
+    refresh_icon_col, refresh_btn_col = st.columns([0.08, 0.92])
+    with refresh_icon_col:
+        st.markdown(
+            f"""
+            <div style="
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                margin-top: 0.5rem;
+            ">
+                {Icons.refresh_cw(16, SUBHEADER_ICON_COLOR)}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    with refresh_btn_col:
+        if st.button("更新", key="refresh_realtime"):
+            get_realtime_data_cached.clear()
+            st.rerun()
 
 
 def render_utm_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
@@ -613,7 +691,10 @@ def render_utm_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_s
     utm_data = ga4_client.get_utm_data(start_date, end_date, site_scope=site_scope)
     
     if not utm_data.empty:
-        st.subheader("📊 UTMパラメータ別データ")
+        _render_subsection_heading(
+            Icons.megaphone(18, SUBHEADER_ICON_COLOR),
+            "UTMパラメータ別データ"
+        )
         st.dataframe(utm_data, width="stretch")
         
         # キャンペーン別セッション数
@@ -621,7 +702,10 @@ def render_utm_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_s
             campaign_data = utm_data.groupby('sessionCampaignName')['sessions'].sum().reset_index()
             campaign_data = campaign_data.sort_values('sessions', ascending=False).head(20)
             
-            st.subheader("📈 キャンペーン別セッション数")
+            _render_subsection_heading(
+                Icons.bar_chart_3(18, SUBHEADER_ICON_COLOR),
+                "キャンペーン別セッション数"
+            )
             fig = Visualization.create_bar_chart(
                 campaign_data,
                 'sessionCampaignName',
@@ -661,19 +745,28 @@ def render_seo_tab(ga4_client: GA4Client, gsc_client: Optional[GSCClient], start
             gsc_url_column='page'
         )
         
-        st.subheader("📊 ページ別SEOパフォーマンス")
+        _render_subsection_heading(
+            Icons.search(18, SUBHEADER_ICON_COLOR),
+            "ページ別SEOパフォーマンス"
+        )
         st.dataframe(merged_data.head(20), width="stretch")
     else:
         st.info("データがありません")
     
     # 検索クエリデータ
     if not query_data.empty:
-        st.subheader("🔎 検索クエリ別データ")
+        _render_subsection_heading(
+            Icons.search(18, SUBHEADER_ICON_COLOR),
+            "検索クエリ別データ"
+        )
         query_data_sorted = query_data.sort_values('clicks', ascending=False).head(20)
         st.dataframe(query_data_sorted, width="stretch")
         
         # クリック数トップ10
-        st.subheader("📈 クリック数トップ10")
+        _render_subsection_heading(
+            Icons.trending_up(18, SUBHEADER_ICON_COLOR),
+            "クリック数トップ10"
+        )
         fig = Visualization.create_bar_chart(
             query_data_sorted.head(10),
             'query',

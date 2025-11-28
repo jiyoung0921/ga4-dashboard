@@ -161,7 +161,7 @@ def render_sidebar() -> Tuple[str, str, str, str]:
         end_date_obj = end_input
         
         if start_date_obj > end_date_obj:
-            st.sidebar.warning("⚠️ 開始日が終了日より後です")
+            st.sidebar.warning("開始日が終了日より後です")
             start_date_obj, end_date_obj = end_date_obj, start_date_obj
     
     start_date = start_date_obj.strftime('%Y-%m-%d')
@@ -201,6 +201,24 @@ def render_sidebar() -> Tuple[str, str, str, str]:
     site_scope_value = site_scope_options[site_scope_index]['value']
     
     st.sidebar.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+    st.sidebar.markdown(
+        f"""
+        <div style="
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #FF8C5A;
+            letter-spacing: 0.04em;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        ">
+            {Icons.settings(14, "#FF8C5A")}
+            カスタムレポート
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     
     # カスタムレポート設定（折りたたみ）
     metadata = st.session_state.get('ga4_metadata', {})
@@ -221,7 +239,7 @@ def render_sidebar() -> Tuple[str, str, str, str]:
     def _format(value: str, mapping: dict) -> str:
         return mapping.get(value, value)
     
-    with st.sidebar.expander("⚙️ カスタムレポート", expanded=False):
+    with st.sidebar.expander("カスタムレポート設定", expanded=False):
         selected_dimensions = st.multiselect(
             "ディメンション",
             options=available_dimensions,

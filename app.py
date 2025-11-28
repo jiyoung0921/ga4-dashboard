@@ -95,7 +95,7 @@ def main():
     # メインコンテンツ
     if st.session_state.ga4_client is None:
         st.error("""
-        ## ⚠️ 設定が必要です
+        ## 設定が必要です
         
         GA4ダッシュボードを使用するには、以下の設定が必要です:
         
