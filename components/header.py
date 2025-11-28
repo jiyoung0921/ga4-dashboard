@@ -2,6 +2,7 @@
 import streamlit as st
 from datetime import datetime
 from typing import Optional
+from textwrap import dedent
 from components.icons import Icons
 
 
@@ -13,7 +14,8 @@ def render_header(site_scope: Optional[str], start_date: str, end_date: str) -> 
     current_time = datetime.now().strftime('%Y/%m/%d %H:%M')
 
     st.markdown(
-        f"""
+        dedent(
+            f"""
         <div class="hero-banner">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
                 <div>
@@ -65,7 +67,8 @@ def render_header(site_scope: Optional[str], start_date: str, end_date: str) -> 
                 </span>
             </div>
         </div>
-        """,
+        """
+        ),
         unsafe_allow_html=True
     )
 
@@ -92,7 +95,8 @@ def render_section_header(icon_name: str, title: str, subtitle: Optional[str] = 
     subtitle_html = f'<div style="font-size: 0.8rem; color: #718096; margin-top: 3px;">{subtitle}</div>' if subtitle else ''
     
     st.markdown(
-        f"""
+        dedent(
+            f"""
         <div style="
             display: flex;
             align-items: center;
@@ -118,7 +122,8 @@ def render_section_header(icon_name: str, title: str, subtitle: Optional[str] = 
                 {subtitle_html}
             </div>
         </div>
-        """,
+        """
+        ),
         unsafe_allow_html=True
     )
 
