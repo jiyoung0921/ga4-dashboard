@@ -12,8 +12,9 @@ def render_header_with_controls(
     site_scope_options: list
 ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
     """
-    ヒーローヘッダーを描画し、クリック可能なチップで期間・領域を変更可能に
-    グラデーション内に全て一体化
+    ヒーローヘッダーを描画
+    - USCPAタイトルをクリックでサイト領域切り替え
+    - 期間チップをグラデーション内に配置
     """
     scope_label = site_scope if site_scope else "全サイト"
     start_display = datetime.strptime(start_date, "%Y-%m-%d").strftime("%Y年%m月%d日")
@@ -24,64 +25,110 @@ def render_header_with_controls(
     new_end = None
     new_scope = None
 
-    # ヒーローバナー全体をカスタムHTMLで描画
+    # グラデーションバナー開始
     st.markdown(
         f"""
-        <div class="hero-banner">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
+        <style>
+        .hero-integrated {{
+            background: linear-gradient(135deg, #7C6AEF 0%, #9D8FFF 50%, #FFB088 100%);
+            border-radius: 28px;
+            padding: 28px 32px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06), 0 4px 8px rgba(0, 0, 0, 0.03);
+            margin-bottom: 1.5rem;
+        }}
+        .hero-integrated::before {{
+            content: "";
+            position: absolute;
+            top: -40%;
+            right: -15%;
+            width: 50%;
+            height: 180%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
+            pointer-events: none;
+        }}
+        .hero-top-row {{
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 14px;
+            position: relative;
+            z-index: 1;
+        }}
+        .hero-label {{
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            opacity: 0.9;
+            margin-bottom: 6px;
+        }}
+        .hero-right {{
+            text-align: right;
+        }}
+        .hero-updated {{
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.7rem;
+            opacity: 0.75;
+            margin-bottom: 3px;
+            justify-content: flex-end;
+        }}
+        .hero-time {{
+            font-size: 0.85rem;
+            font-weight: 600;
+        }}
+        </style>
+        <div class="hero-integrated">
+            <div class="hero-top-row">
                 <div>
-                    <div style="
-                        display: flex;
-                        align-items: center;
-                        gap: 6px;
-                        font-size: 0.7rem;
-                        font-weight: 600;
-                        letter-spacing: 0.05em;
-                        opacity: 0.9;
-                        margin-bottom: 6px;
-                    ">
+                    <div class="hero-label">
                         {Icons.activity(12, "white")}
                         ANALYTICS DASHBOARD
                     </div>
-                    <div class="hero-title">
-                        {Icons.pie_chart(24, "white")}
-                        {scope_label}
-                    </div>
                 </div>
-                <div style="text-align: right;">
-                    <div style="
-                        display: flex;
-                        align-items: center;
-                        gap: 5px;
-                        font-size: 0.7rem;
-                        opacity: 0.75;
-                        margin-bottom: 3px;
-                        justify-content: flex-end;
-                    ">
+                <div class="hero-right">
+                    <div class="hero-updated">
                         {Icons.refresh_cw(10, "white")}
                         最終更新
                     </div>
-                    <div style="
-                        font-size: 0.85rem;
-                        font-weight: 600;
-                    ">{current_time}</div>
+                    <div class="hero-time">{current_time}</div>
                 </div>
             </div>
-            <div class="hero-chips-container">
         """,
         unsafe_allow_html=True
     )
     
-    # チップをグラデーション内に配置
-    chip_col1, chip_col2, chip_spacer = st.columns([2, 1.2, 2.8])
+    # タイトル（サイト領域選択）をStreamlit popoverで
+    title_col, date_col = st.columns([1.5, 2.5])
     
-    with chip_col1:
-        # 期間選択ポップオーバー
-        with st.popover(f"📅 {start_display} 〜 {end_display}", use_container_width=True):
+    with title_col:
+        # サイト領域選択 - タイトルとして表示
+        with st.popover(f"⏣ {scope_label} ▾", use_container_width=False):
+            st.markdown("##### サイト領域を選択")
+            for opt in site_scope_options:
+                is_selected = opt['value'] == site_scope
+                if st.button(
+                    f"{'✓ ' if is_selected else '　'}{opt['label']}", 
+                    key=f"scope_{opt['value']}",
+                    use_container_width=True,
+                    type="primary" if is_selected else "secondary"
+                ):
+                    if not is_selected:
+                        new_scope = opt['value']
+    
+    with date_col:
+        # 期間選択チップ
+        with st.popover(f"📅 {start_display} 〜 {end_display}", use_container_width=False):
             st.markdown("##### 期間を選択")
             today = datetime.now().date()
             
-            # クイック選択ボタン
             quick_cols = st.columns(3)
             with quick_cols[0]:
                 if st.button("過去7日", key="quick_7d", use_container_width=True):
@@ -98,7 +145,6 @@ def render_header_with_controls(
             
             st.divider()
             
-            # カスタム日付選択
             date_cols = st.columns(2)
             with date_cols[0]:
                 selected_start = st.date_input(
@@ -117,29 +163,8 @@ def render_header_with_controls(
                 new_start = selected_start.strftime("%Y-%m-%d")
                 new_end = selected_end.strftime("%Y-%m-%d")
     
-    with chip_col2:
-        # サイト領域選択ポップオーバー
-        with st.popover(f"🏷️ {scope_label}", use_container_width=True):
-            st.markdown("##### サイト領域を選択")
-            for i, opt in enumerate(site_scope_options):
-                is_selected = opt['value'] == site_scope
-                if st.button(
-                    f"{'✓ ' if is_selected else '　'}{opt['label']}", 
-                    key=f"scope_{opt['value']}",
-                    use_container_width=True,
-                    type="primary" if is_selected else "secondary"
-                ):
-                    if not is_selected:
-                        new_scope = opt['value']
-    
-    # ヒーローバナーの閉じタグ
-    st.markdown(
-        """
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    # グラデーションバナー終了
+    st.markdown("</div>", unsafe_allow_html=True)
     
     return new_start, new_end, new_scope
 
@@ -212,7 +237,6 @@ def render_header(site_scope: Optional[str], start_date: str, end_date: str) -> 
 def render_section_header(icon_name: str, title: str, subtitle: Optional[str] = None) -> None:
     """セクションヘッダーを描画（アイコン名で指定）"""
     
-    # アイコンマッピング
     icon_map = {
         "overview": Icons.gauge(20, "#7C6AEF"),
         "traffic": Icons.share_2(20, "#7C6AEF"),
@@ -264,9 +288,8 @@ def render_section_header(icon_name: str, title: str, subtitle: Optional[str] = 
 
 
 def render_stat_card(value: str, label: str, icon_name: str, trend: Optional[str] = None, trend_positive: bool = True) -> None:
-    """統計カードを描画（アイコン名で指定）"""
+    """統計カードを描画"""
     
-    # アイコンマッピング
     icon_map = {
         "sessions": Icons.users(18, "#7C6AEF"),
         "users": Icons.user_check(18, "#7C6AEF"),
@@ -310,7 +333,6 @@ def render_stat_card(value: str, label: str, icon_name: str, trend: Optional[str
             padding: 18px;
             box-shadow: 0 2px 8px rgba(124, 106, 239, 0.06);
             height: 100%;
-            transition: all 0.25s ease;
         ">
             <div style="
                 display: flex;

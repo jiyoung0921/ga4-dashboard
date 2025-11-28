@@ -722,9 +722,29 @@ hr {
     padding: 12px !important;
 }
 
-/* Hero banner chips - both date and scope */
-.hero-banner [data-testid="stPopover"] > button,
-.hero-chips-container [data-testid="stPopover"] > button {
+/* Hero integrated - title popover (site scope) - BIG TITLE style */
+.hero-integrated [data-testid="column"]:first-child [data-testid="stPopover"] > button {
+    background: transparent !important;
+    border: none !important;
+    padding: 4px 0 !important;
+    font-family: var(--font-display) !important;
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    color: white !important;
+    cursor: pointer !important;
+    transition: opacity 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.hero-integrated [data-testid="column"]:first-child [data-testid="stPopover"] > button:hover {
+    opacity: 0.85 !important;
+    background: transparent !important;
+}
+
+/* Hero integrated - date chip popover */
+.hero-integrated [data-testid="column"]:nth-child(2) [data-testid="stPopover"] > button {
     background: rgba(255, 255, 255, 0.22) !important;
     backdrop-filter: blur(8px) !important;
     border-radius: 999px !important;
@@ -736,20 +756,18 @@ hr {
     transition: all 0.2s ease !important;
 }
 
-.hero-banner [data-testid="stPopover"] > button:hover,
-.hero-chips-container [data-testid="stPopover"] > button:hover {
+.hero-integrated [data-testid="column"]:nth-child(2) [data-testid="stPopover"] > button:hover {
     background: rgba(255, 255, 255, 0.35) !important;
     border-color: rgba(255, 255, 255, 0.5) !important;
 }
 
-/* Make columns inside hero banner transparent */
-.hero-banner [data-testid="column"],
-.hero-chips-container [data-testid="column"] {
+/* Make columns inside hero transparent */
+.hero-integrated [data-testid="column"] {
     background: transparent !important;
 }
 
 /* General popover button style (outside hero) */
-.main [data-testid="stPopover"]:not(.hero-banner [data-testid="stPopover"]) > button {
+.main [data-testid="stPopover"] > button {
     border-radius: var(--radius-sm) !important;
     padding: 8px 14px !important;
     font-size: 0.85rem !important;
