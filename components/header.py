@@ -6,6 +6,11 @@ from textwrap import dedent
 from components.icons import Icons
 
 
+def _render_html(content: str) -> None:
+    """共通HTMLレンダラ（インデント除去 & トリム）"""
+    st.markdown(dedent(content).strip(), unsafe_allow_html=True)
+
+
 def render_header(site_scope: Optional[str], start_date: str, end_date: str) -> None:
     """やさしい雰囲気のヒーローヘッダーを描画"""
     scope_label = site_scope if site_scope else "全サイト"
@@ -13,9 +18,8 @@ def render_header(site_scope: Optional[str], start_date: str, end_date: str) -> 
     end_display = datetime.strptime(end_date, "%Y-%m-%d").strftime("%Y年%m月%d日")
     current_time = datetime.now().strftime('%Y/%m/%d %H:%M')
 
-    st.markdown(
-        dedent(
-            f"""
+    _render_html(
+        f"""
         <div class="hero-banner">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
                 <div>
@@ -68,8 +72,6 @@ def render_header(site_scope: Optional[str], start_date: str, end_date: str) -> 
             </div>
         </div>
         """
-        ),
-        unsafe_allow_html=True
     )
 
 
@@ -94,9 +96,8 @@ def render_section_header(icon_name: str, title: str, subtitle: Optional[str] = 
     icon_svg = icon_map.get(icon_name, Icons.bar_chart_3(20, "#7C6AEF"))
     subtitle_html = f'<div style="font-size: 0.8rem; color: #718096; margin-top: 3px;">{subtitle}</div>' if subtitle else ''
     
-    st.markdown(
-        dedent(
-            f"""
+    _render_html(
+        f"""
         <div style="
             display: flex;
             align-items: center;
@@ -123,8 +124,6 @@ def render_section_header(icon_name: str, title: str, subtitle: Optional[str] = 
             </div>
         </div>
         """
-        ),
-        unsafe_allow_html=True
     )
 
 
@@ -166,7 +165,7 @@ def render_stat_card(value: str, label: str, icon_name: str, trend: Optional[str
             ">{trend_icon} {trend}</div>
         '''
     
-    st.markdown(
+    _render_html(
         f"""
         <div style="
             background: white;
@@ -207,8 +206,7 @@ def render_stat_card(value: str, label: str, icon_name: str, trend: Optional[str
             ">{value}</div>
             {trend_html}
         </div>
-        """,
-        unsafe_allow_html=True
+        """
     )
 
 
@@ -226,7 +224,7 @@ def render_mini_stat(value: str, label: str, icon_name: str, color: str = "#7C6A
     
     icon_svg = icon_map.get(icon_name, Icons.bar_chart_3(14, color))
     
-    st.markdown(
+    _render_html(
         f"""
         <div style="
             display: flex;
@@ -260,6 +258,5 @@ def render_mini_stat(value: str, label: str, icon_name: str, color: str = "#7C6A
                 ">{label}</div>
             </div>
         </div>
-        """,
-        unsafe_allow_html=True
+        """
     )

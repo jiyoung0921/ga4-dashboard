@@ -205,7 +205,7 @@ def _render_kpi_cards(cards: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
                         {f'<div class="kpi-delta {delta_class}">{delta_text}</div>' if delta_text else ''}
                     </div>
                     """
-                )
+                ).strip()
                 st.markdown(card_html, unsafe_allow_html=True)
                 if st.button(
                     "週次推移を見る",
