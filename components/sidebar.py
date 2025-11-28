@@ -1,4 +1,4 @@
-"""サイドバーコンポーネント - Elegant Design without Radio Buttons"""
+"""サイドバーコンポーネント - Elegant Radio Button Design"""
 import streamlit as st
 from datetime import datetime, timedelta
 from typing import Tuple
@@ -56,7 +56,7 @@ def render_sidebar() -> Tuple[str, str, str, str]:
         unsafe_allow_html=True
     )
     
-    # モード選択（セグメントボタン風）
+    # モード選択
     st.sidebar.markdown(
         f"""
         <div style="
@@ -64,7 +64,7 @@ def render_sidebar() -> Tuple[str, str, str, str]:
             font-weight: 600;
             color: #FF8C5A;
             letter-spacing: 0.04em;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -76,33 +76,14 @@ def render_sidebar() -> Tuple[str, str, str, str]:
         unsafe_allow_html=True
     )
     
-    # セグメントボタン風のモード選択
-    if 'selected_mode' not in st.session_state:
-        st.session_state.selected_mode = "ダッシュボード"
+    mode = st.sidebar.radio(
+        "モード選択",
+        ["ダッシュボード", "対話アシスタント"],
+        key="mode_radio",
+        label_visibility="collapsed"
+    )
     
-    mode_col1, mode_col2 = st.sidebar.columns(2)
-    with mode_col1:
-        if st.button(
-            "📊 ダッシュボード", 
-            key="mode_dashboard",
-            use_container_width=True,
-            type="primary" if st.session_state.selected_mode == "ダッシュボード" else "secondary"
-        ):
-            st.session_state.selected_mode = "ダッシュボード"
-            st.rerun()
-    with mode_col2:
-        if st.button(
-            "💬 対話", 
-            key="mode_chat",
-            use_container_width=True,
-            type="primary" if st.session_state.selected_mode == "対話アシスタント" else "secondary"
-        ):
-            st.session_state.selected_mode = "対話アシスタント"
-            st.rerun()
-    
-    mode = st.session_state.selected_mode
-    
-    st.sidebar.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+    st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
     
     # 期間選択
     st.sidebar.markdown(
@@ -112,7 +93,7 @@ def render_sidebar() -> Tuple[str, str, str, str]:
             font-weight: 600;
             color: #FF8C5A;
             letter-spacing: 0.04em;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -124,35 +105,19 @@ def render_sidebar() -> Tuple[str, str, str, str]:
         unsafe_allow_html=True
     )
     
-    # 期間タイプ選択（トグルスイッチ風）
-    if 'period_type' not in st.session_state:
-        st.session_state.period_type = "プリセット"
-    
-    period_col1, period_col2 = st.sidebar.columns(2)
-    with period_col1:
-        if st.button(
-            "プリセット", 
-            key="period_preset_btn",
-            use_container_width=True,
-            type="primary" if st.session_state.period_type == "プリセット" else "secondary"
-        ):
-            st.session_state.period_type = "プリセット"
-            st.rerun()
-    with period_col2:
-        if st.button(
-            "カスタム", 
-            key="period_custom_btn",
-            use_container_width=True,
-            type="primary" if st.session_state.period_type == "カスタム" else "secondary"
-        ):
-            st.session_state.period_type = "カスタム"
-            st.rerun()
+    period_type = st.sidebar.radio(
+        "期間タイプ",
+        ["プリセット", "カスタム"],
+        key="period_type_radio",
+        label_visibility="collapsed",
+        horizontal=True
+    )
     
     today = datetime.now().date()
     start_date_obj = today - timedelta(days=6)
     end_date_obj = today
     
-    if st.session_state.period_type == "プリセット":
+    if period_type == "プリセット":
         preset = st.sidebar.selectbox(
             "期間を選択",
             ["過去7日間", "過去30日間", "過去90日間", "今月", "先月"],
@@ -202,7 +167,7 @@ def render_sidebar() -> Tuple[str, str, str, str]:
     start_date = start_date_obj.strftime('%Y-%m-%d')
     end_date = end_date_obj.strftime('%Y-%m-%d')
     
-    st.sidebar.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+    st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
     
     # サイト領域選択
     st.sidebar.markdown(
@@ -212,7 +177,7 @@ def render_sidebar() -> Tuple[str, str, str, str]:
             font-weight: 600;
             color: #FF8C5A;
             letter-spacing: 0.04em;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -235,7 +200,7 @@ def render_sidebar() -> Tuple[str, str, str, str]:
     )
     site_scope_value = site_scope_options[site_scope_index]['value']
     
-    st.sidebar.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
+    st.sidebar.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
     
     # カスタムレポート設定（折りたたみ）
     metadata = st.session_state.get('ga4_metadata', {})
