@@ -1,4 +1,4 @@
-"""サイドバーコンポーネント - Modern Design with Lucide Icons"""
+"""サイドバーコンポーネント - Soft Friendly Design with Lucide Icons"""
 import streamlit as st
 from datetime import datetime, timedelta
 from typing import Tuple
@@ -11,43 +11,43 @@ from components.icons import Icons
 
 
 def render_sidebar() -> Tuple[str, str, str, str]:
-    """モダンなサイドバーをレンダリングして設定値を返す"""
+    """やさしい雰囲気のサイドバーをレンダリングして設定値を返す"""
     
     # サイドバーヘッダー
     st.sidebar.markdown(
         f"""
         <div style="
-            padding: 8px 0 24px;
-            border-bottom: 1px solid rgba(124, 106, 239, 0.1);
-            margin-bottom: 24px;
+            padding: 6px 0 20px;
+            border-bottom: 1px solid #E2E8F0;
+            margin-bottom: 20px;
         ">
             <div style="
                 display: flex;
                 align-items: center;
-                gap: 12px;
+                gap: 10px;
             ">
                 <div style="
-                    width: 44px;
-                    height: 44px;
-                    border-radius: 14px;
-                    background: linear-gradient(135deg, #7C6AEF 0%, #FF8C5A 100%);
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 12px;
+                    background: linear-gradient(135deg, #7C6AEF 0%, #9D8FFF 50%, #FFB088 100%);
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     color: white;
-                ">{Icons.bar_chart_3(22, "white")}</div>
+                    box-shadow: 0 4px 12px rgba(124, 106, 239, 0.25);
+                ">{Icons.bar_chart_3(20, "white")}</div>
                 <div>
                     <div style="
-                        font-family: 'Plus Jakarta Sans', sans-serif;
-                        font-size: 1.1rem;
+                        font-family: 'Quicksand', 'M PLUS Rounded 1c', sans-serif;
+                        font-size: 1rem;
                         font-weight: 700;
-                        color: #1A1A2E;
+                        color: #2D3748;
                     ">GA4 Dashboard</div>
                     <div style="
-                        font-size: 0.7rem;
-                        color: #6E6E8A;
-                        text-transform: uppercase;
-                        letter-spacing: 0.05em;
+                        font-size: 0.65rem;
+                        color: #718096;
+                        letter-spacing: 0.03em;
                     ">Analytics Suite</div>
                 </div>
             </div>
@@ -62,15 +62,14 @@ def render_sidebar() -> Tuple[str, str, str, str]:
         <div style="
             font-size: 0.7rem;
             font-weight: 600;
-            color: #6E6E8A;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 8px;
+            color: #718096;
+            letter-spacing: 0.04em;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
             gap: 6px;
         ">
-            {Icons.layout_dashboard(14, "#6E6E8A")}
+            {Icons.layout_dashboard(14, "#718096")}
             モード
         </div>
         """,
@@ -92,15 +91,14 @@ def render_sidebar() -> Tuple[str, str, str, str]:
         <div style="
             font-size: 0.7rem;
             font-weight: 600;
-            color: #6E6E8A;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 8px;
+            color: #718096;
+            letter-spacing: 0.04em;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
             gap: 6px;
         ">
-            {Icons.calendar_days(14, "#6E6E8A")}
+            {Icons.calendar_days(14, "#718096")}
             期間
         </div>
         """,
@@ -177,15 +175,14 @@ def render_sidebar() -> Tuple[str, str, str, str]:
         <div style="
             font-size: 0.7rem;
             font-weight: 600;
-            color: #6E6E8A;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 8px;
+            color: #718096;
+            letter-spacing: 0.04em;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
             gap: 6px;
         ">
-            {Icons.layers(14, "#6E6E8A")}
+            {Icons.layers(14, "#718096")}
             サイト領域
         </div>
         """,
@@ -260,20 +257,20 @@ def render_sidebar() -> Tuple[str, str, str, str]:
             position: fixed;
             bottom: 0;
             left: 0;
-            width: 240px;
-            padding: 16px 24px;
-            background: linear-gradient(180deg, transparent 0%, white 20%);
-            border-top: 1px solid rgba(124, 106, 239, 0.08);
+            width: 220px;
+            padding: 14px 20px;
+            background: linear-gradient(180deg, transparent 0%, white 30%);
+            border-top: 1px solid #E2E8F0;
         ">
             <div style="
                 display: flex;
                 align-items: center;
                 gap: 8px;
-                font-size: 0.75rem;
-                color: #9E9EB8;
+                font-size: 0.7rem;
+                color: #A0AEC0;
             ">
-                {Icons.wifi(14, "#10B981")}
-                <span style="color: #10B981; font-weight: 500;">GA4 接続中</span>
+                {Icons.wifi(12, "#48BB78")}
+                <span style="color: #48BB78; font-weight: 600;">GA4 接続中</span>
             </div>
         </div>
         """,
