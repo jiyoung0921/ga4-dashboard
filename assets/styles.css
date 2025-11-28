@@ -75,37 +75,6 @@ section[data-testid="stSidebar"] > div {
     padding: 1.25rem 1rem;
 }
 
-section[data-testid="stSidebar"] .stRadio > div {
-    gap: 4px;
-}
-
-section[data-testid="stSidebar"] .stRadio > div > label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    border-radius: var(--radius-sm);
-    margin-bottom: 2px;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    font-weight: 500;
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-}
-
-section[data-testid="stSidebar"] .stRadio > div > label:hover {
-    background: var(--surface-active);
-    color: var(--primary);
-}
-
-section[data-testid="stSidebar"] .stRadio > div > label[data-checked="true"],
-section[data-testid="stSidebar"] .stRadio input:checked + div {
-    background: var(--primary);
-    color: white;
-    font-weight: 600;
-    box-shadow: 0 4px 12px rgba(124, 106, 239, 0.25);
-}
-
 section[data-testid="stSidebar"] h1,
 section[data-testid="stSidebar"] h2,
 section[data-testid="stSidebar"] h3 {
@@ -126,6 +95,58 @@ section[data-testid="stSidebar"] .stMultiSelect > div > div {
     border: 1px solid var(--border-light);
     background: var(--surface);
     font-size: 0.85rem;
+}
+
+/* ===== ELEGANT RADIO BUTTONS ===== */
+section[data-testid="stSidebar"] .stRadio > div {
+    gap: 2px !important;
+}
+
+section[data-testid="stSidebar"] .stRadio [role="radiogroup"] {
+    gap: 4px !important;
+}
+
+section[data-testid="stSidebar"] .stRadio [role="radiogroup"] > label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 10px 14px !important;
+    border-radius: 10px !important;
+    background: #F8FAFC !important;
+    border: 1.5px solid transparent !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    margin: 0 !important;
+}
+
+section[data-testid="stSidebar"] .stRadio [role="radiogroup"] > label:hover {
+    background: rgba(124, 106, 239, 0.06) !important;
+    border-color: rgba(124, 106, 239, 0.2) !important;
+}
+
+/* Selected radio state */
+section[data-testid="stSidebar"] .stRadio [role="radiogroup"] > label:has(input:checked) {
+    background: rgba(124, 106, 239, 0.1) !important;
+    border-color: var(--primary) !important;
+}
+
+/* Radio circle styling */
+section[data-testid="stSidebar"] .stRadio [role="radiogroup"] > label > div[data-testid="stMarkdownContainer"] {
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    color: #4A5568 !important;
+}
+
+section[data-testid="stSidebar"] .stRadio [role="radiogroup"] > label:has(input:checked) > div[data-testid="stMarkdownContainer"] {
+    color: var(--primary) !important;
+    font-weight: 600 !important;
+}
+
+/* Horizontal radio for period type */
+section[data-testid="stSidebar"] .stRadio[data-testid="stRadio"]:has([data-baseweb="radio"][aria-label*="プリセット"]) [role="radiogroup"],
+section[data-testid="stSidebar"] .stRadio[data-testid="stRadio"]:has([data-baseweb="radio"][aria-label*="カスタム"]) [role="radiogroup"] {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
 }
 
 /* ===== HERO HEADER - Softer gradient ===== */
@@ -169,6 +190,7 @@ section[data-testid="stSidebar"] .stMultiSelect > div > div {
     gap: 10px;
     position: relative;
     z-index: 1;
+    margin-top: 16px;
 }
 
 .hero-chip {
@@ -181,6 +203,14 @@ section[data-testid="stSidebar"] .stMultiSelect > div > div {
     backdrop-filter: blur(8px);
     font-size: 0.8rem;
     font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.hero-chip:hover {
+    background: rgba(255, 255, 255, 0.35);
+    border-color: rgba(255, 255, 255, 0.5);
 }
 
 /* ===== CONTENT CARDS - Like the image ===== */
@@ -528,30 +558,6 @@ section[data-testid="stSidebar"] .stMultiSelect > div > div {
     color: var(--primary);
 }
 
-/* Sidebar segment buttons */
-section[data-testid="stSidebar"] .stButton > button {
-    font-size: 0.75rem;
-    padding: 8px 10px;
-    border-radius: 10px;
-}
-
-section[data-testid="stSidebar"] .stButton > button[kind="primary"] {
-    background: var(--primary);
-    box-shadow: 0 2px 8px rgba(124, 106, 239, 0.25);
-}
-
-section[data-testid="stSidebar"] .stButton > button[kind="secondary"] {
-    background: #F7FAFC;
-    border: 1px solid #E2E8F0;
-    color: #718096;
-}
-
-section[data-testid="stSidebar"] .stButton > button[kind="secondary"]:hover {
-    background: rgba(124, 106, 239, 0.08);
-    border-color: var(--primary-light);
-    color: var(--primary);
-}
-
 /* ===== EXPANDERS ===== */
 .streamlit-expanderHeader {
     background: var(--surface);
@@ -701,189 +707,18 @@ hr {
     color: var(--text-primary);
 }
 
-/* ===== ONLINE USERS PANEL (like image) ===== */
-.users-panel {
-    background: var(--surface);
-    border-radius: var(--radius-lg);
-    padding: 18px;
-    box-shadow: var(--shadow-card);
-}
-
-.users-panel__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 14px;
-}
-
-.users-panel__title {
-    font-family: var(--font-display);
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-.users-panel__link {
-    font-size: 0.8rem;
-    color: var(--primary);
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.user-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border-light);
-}
-
-.user-item:last-child {
-    border-bottom: none;
-}
-
-.user-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--primary-muted);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    color: var(--primary);
-    font-size: 0.85rem;
-}
-
-.user-info {
-    flex: 1;
-}
-
-.user-name {
-    font-weight: 600;
-    font-size: 0.85rem;
-    color: var(--text-primary);
-}
-
-.user-id {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-}
-
-.user-status {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #48BB78;
-}
-
-/* ===== CALENDAR WIDGET (like image) ===== */
-.calendar-widget {
-    background: var(--surface);
-    border-radius: var(--radius-lg);
-    padding: 18px;
-    box-shadow: var(--shadow-card);
-}
-
-.calendar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 14px;
-}
-
-.calendar-title {
-    font-family: var(--font-display);
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-.calendar-nav {
-    display: flex;
-    gap: 8px;
-}
-
-.calendar-nav button {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 1px solid var(--border-light);
-    background: var(--surface);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-secondary);
-    transition: all 0.2s ease;
-}
-
-.calendar-nav button:hover {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-}
-
-/* ===== FILTER BAR (like image) ===== */
-.filter-bar {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-}
-
-.filter-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    background: var(--surface);
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-light);
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.filter-item:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-}
-
-.filter-item.active {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-}
-
 /* ===== POPOVER (for header chips) ===== */
 [data-testid="stPopover"] > div {
     border-radius: var(--radius-lg) !important;
     box-shadow: var(--shadow-lg) !important;
     border: 1px solid var(--border-light) !important;
-    padding: 4px !important;
+    padding: 12px !important;
 }
 
-[data-testid="stPopover"] button {
-    border-radius: var(--radius-sm) !important;
-    font-size: 0.8rem !important;
-    font-weight: 500 !important;
-    padding: 8px 14px !important;
-    background: rgba(124, 106, 239, 0.08) !important;
-    border: none !important;
-    color: var(--primary) !important;
-    transition: all 0.2s ease !important;
-}
-
-[data-testid="stPopover"] button:hover {
-    background: rgba(124, 106, 239, 0.15) !important;
-}
-
-/* Header chip popover trigger */
+/* Header chip popover trigger - inside hero banner */
+.hero-banner [data-testid="stPopover"] > button,
 .main [data-testid="stPopover"] > button {
-    background: rgba(255, 255, 255, 0.2) !important;
+    background: rgba(255, 255, 255, 0.22) !important;
     backdrop-filter: blur(8px) !important;
     border-radius: 999px !important;
     padding: 6px 14px !important;
@@ -894,111 +729,10 @@ hr {
     transition: all 0.2s ease !important;
 }
 
+.hero-banner [data-testid="stPopover"] > button:hover,
 .main [data-testid="stPopover"] > button:hover {
     background: rgba(255, 255, 255, 0.35) !important;
     border-color: rgba(255, 255, 255, 0.5) !important;
-}
-
-/* ===== ELEGANT RADIO BUTTONS ===== */
-section[data-testid="stSidebar"] .stRadio > div {
-    gap: 4px;
-}
-
-section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] {
-    gap: 6px;
-}
-
-/* Radio button container */
-section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    border-radius: 10px;
-    background: #F8FAFC;
-    border: 1.5px solid transparent;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    margin: 0;
-}
-
-section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label:hover {
-    background: rgba(124, 106, 239, 0.06);
-    border-color: rgba(124, 106, 239, 0.2);
-}
-
-/* Selected state */
-section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label[data-checked="true"],
-section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label:has(input:checked) {
-    background: rgba(124, 106, 239, 0.08);
-    border-color: var(--primary);
-}
-
-/* Custom radio circle */
-section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label > div:first-child {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    border: 2px solid #CBD5E0;
-    background: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-}
-
-section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label:has(input:checked) > div:first-child,
-section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label[data-checked="true"] > div:first-child {
-    border-color: var(--primary);
-    background: var(--primary);
-}
-
-section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label:has(input:checked) > div:first-child::after,
-section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label[data-checked="true"] > div:first-child::after {
-    content: "";
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: white;
-}
-
-/* Radio label text */
-section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label > div:last-child {
-    font-size: 0.82rem;
-    font-weight: 500;
-    color: #4A5568;
-    transition: color 0.2s ease;
-}
-
-section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label:has(input:checked) > div:last-child,
-section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label[data-checked="true"] > div:last-child {
-    color: var(--primary);
-    font-weight: 600;
-}
-
-/* Horizontal radio (for period type) */
-section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"][data-testid="stRadioGroup"] {
-    flex-direction: row;
-    flex-wrap: wrap;
-}
-
-section[data-testid="stSidebar"] .stRadio[data-testid="stRadio"] > div > div[role="radiogroup"] {
-    display: flex;
-    flex-direction: column;
-}
-
-/* Horizontal mode */
-section[data-testid="stSidebar"] div[data-baseweb="radio"] {
-    margin-right: 0;
-}
-
-/* Hide original input */
-section[data-testid="stSidebar"] .stRadio input[type="radio"] {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
 }
 
 /* ===== RESPONSIVE ===== */

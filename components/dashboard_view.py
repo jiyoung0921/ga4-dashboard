@@ -279,7 +279,8 @@ def _show_kpi_modal(card: Dict[str, Any], ga4_client: GA4Client, site_scope: Opt
 
 def render_overview_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
     """概要タブをレンダリング"""
-    st.header("📊 概要")
+    from components.header import render_section_header
+    render_section_header("overview", "概要")
     
     # メトリクスを取得
     metrics = get_overview_metrics_cached(ga4_client, start_date, end_date, site_scope)
@@ -351,7 +352,8 @@ def render_overview_tab(ga4_client: GA4Client, start_date: str, end_date: str, s
 
 def render_traffic_source_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
     """流入元タブをレンダリング"""
-    st.header("🌐 流入元")
+    from components.header import render_section_header
+    render_section_header("traffic", "流入元")
     
     # チャネルグループ別データ
     source_data = ga4_client.get_traffic_source(start_date, end_date, site_scope=site_scope)
@@ -393,7 +395,8 @@ def render_traffic_source_tab(ga4_client: GA4Client, start_date: str, end_date: 
 
 def render_device_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
     """デバイスタブをレンダリング"""
-    st.header("📱 デバイス")
+    from components.header import render_section_header
+    render_section_header("device", "デバイス")
     
     device_data = ga4_client.get_device_data(start_date, end_date, site_scope=site_scope)
     
@@ -458,7 +461,8 @@ def render_device_tab(ga4_client: GA4Client, start_date: str, end_date: str, sit
 
 def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
     """イベントタブをレンダリング（記事別分析）"""
-    st.header("📰 記事別イベント分析")
+    from components.header import render_section_header
+    render_section_header("event", "記事別イベント分析")
  
     event_names = get_cv_events_for_scope(site_scope)
     event_data = ga4_client.get_event_page_counts(
@@ -568,7 +572,8 @@ def get_realtime_data_cached(ga4_client: GA4Client):
 
 def render_realtime_tab(ga4_client: GA4Client, site_scope: Optional[str]):
     """リアルタイムタブをレンダリング"""
-    st.header("⚡ リアルタイム")
+    from components.header import render_section_header
+    render_section_header("realtime", "リアルタイム")
     
     # リアルタイムデータを取得（30秒キャッシュ）
     realtime_data = get_realtime_data_cached(ga4_client)
@@ -610,7 +615,8 @@ def render_realtime_tab(ga4_client: GA4Client, site_scope: Optional[str]):
 
 def render_utm_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
     """UTMタブをレンダリング"""
-    st.header("📢 UTMパラメータ")
+    from components.header import render_section_header
+    render_section_header("utm", "UTMパラメータ")
     
     utm_data = ga4_client.get_utm_data(start_date, end_date, site_scope=site_scope)
     
@@ -640,7 +646,8 @@ def render_utm_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_s
 
 def render_seo_tab(ga4_client: GA4Client, gsc_client: Optional[GSCClient], start_date: str, end_date: str, site_scope: Optional[str]):
     """SEOタブをレンダリング"""
-    st.header("🔍 SEO")
+    from components.header import render_section_header
+    render_section_header("seo", "SEO")
     
     if gsc_client is None:
         st.warning("Google Search Consoleが接続されていません。")
@@ -695,7 +702,8 @@ def render_custom_report_tab(
     custom_config: Optional[Dict[str, Any]]
 ):
     """カスタムレポートタブ"""
-    st.header("🧩 カスタムレポート")
+    from components.header import render_section_header
+    render_section_header("custom", "カスタムレポート")
     if custom_config is None or not custom_config.get('metrics'):
         st.info("設定ボタンからディメンションと指標を選択してください。")
         return

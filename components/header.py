@@ -24,7 +24,7 @@ def render_header_with_controls(
     new_end = None
     new_scope = None
 
-    # ヒーローバナー部分（静的）
+    # ヒーローバナー部分（静的HTML）
     st.markdown(
         f"""
         <div class="hero-banner">
@@ -41,7 +41,7 @@ def render_header_with_controls(
                         margin-bottom: 6px;
                     ">
                         {Icons.activity(12, "white")}
-                        Analytics Dashboard
+                        ANALYTICS DASHBOARD
                     </div>
                     <div class="hero-title">
                         {Icons.pie_chart(24, "white")}
@@ -67,18 +67,17 @@ def render_header_with_controls(
                     ">{current_time}</div>
                 </div>
             </div>
-        </div>
         """,
         unsafe_allow_html=True
     )
     
-    # インタラクティブなチップ（Streamlit ウィジェット）
-    col1, col2, col3 = st.columns([2, 1, 3])
+    # インタラクティブなチップ（Streamlit ウィジェット）- ヒーローバナー内
+    chip_col1, chip_col2, chip_col3 = st.columns([2, 1.2, 2.8])
     
-    with col1:
+    with chip_col1:
         # 期間選択ポップオーバー
         with st.popover(f"📅 {start_display} 〜 {end_display}", use_container_width=True):
-            st.markdown("##### 期間を選択")
+            st.markdown("##### 📅 期間を選択")
             today = datetime.now().date()
             
             # クイック選択ボタン
@@ -117,13 +116,10 @@ def render_header_with_controls(
                 new_start = selected_start.strftime("%Y-%m-%d")
                 new_end = selected_end.strftime("%Y-%m-%d")
     
-    with col2:
+    with chip_col2:
         # サイト領域選択ポップオーバー
-        scope_options = [opt['label'] for opt in site_scope_options]
-        current_index = next((i for i, opt in enumerate(site_scope_options) if opt['value'] == site_scope), 0)
-        
         with st.popover(f"🏷️ {scope_label}", use_container_width=True):
-            st.markdown("##### サイト領域を選択")
+            st.markdown("##### 🏷️ サイト領域を選択")
             for i, opt in enumerate(site_scope_options):
                 is_selected = opt['value'] == site_scope
                 if st.button(
@@ -134,6 +130,9 @@ def render_header_with_controls(
                 ):
                     if not is_selected:
                         new_scope = opt['value']
+    
+    # ヒーローバナーの閉じタグ
+    st.markdown("</div>", unsafe_allow_html=True)
     
     return new_start, new_end, new_scope
 
@@ -161,7 +160,7 @@ def render_header(site_scope: Optional[str], start_date: str, end_date: str) -> 
                         margin-bottom: 6px;
                     ">
                         {Icons.activity(12, "white")}
-                        Analytics Dashboard
+                        ANALYTICS DASHBOARD
                     </div>
                     <div class="hero-title">
                         {Icons.pie_chart(24, "white")}

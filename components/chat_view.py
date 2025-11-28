@@ -62,7 +62,8 @@ def _detect_event_from_query(query: str) -> Optional[str]:
 
 def render_chat_view(ga4_client: GA4Client, gsc_client: Optional[GSCClient], start_date: str, end_date: str, site_scope: Optional[str]):
     """チャットビューをレンダリング"""
-    st.header("💬 対話アシスタント")
+    from components.header import render_section_header
+    render_section_header("chart", "対話アシスタント")
     
     initialize_chat_history()
 
