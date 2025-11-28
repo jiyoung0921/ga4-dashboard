@@ -9,6 +9,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import re
 from typing import Optional, List, Dict, Tuple, Any
+from textwrap import dedent
 from utils.config import (
     get_cv_events_for_scope,
     get_event_display_name,
@@ -191,7 +192,7 @@ def _render_kpi_cards(cards: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
             delta_class = card.get('delta_class', '')
             prev_text = card.get('previous_text', '')
             with col:
-                st.markdown(
+                card_html = dedent(
                     f"""
                     <div class="kpi-card">
                         <div class="kpi-card__meta">
@@ -203,9 +204,9 @@ def _render_kpi_cards(cards: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
                         <div class="kpi-prev">前期間: {prev_text if prev_text else '-'}</div>
                         {f'<div class="kpi-delta {delta_class}">{delta_text}</div>' if delta_text else ''}
                     </div>
-                    """,
-                    unsafe_allow_html=True
+                    """
                 )
+                st.markdown(card_html, unsafe_allow_html=True)
                 if st.button(
                     "週次推移を見る",
                     key=f"kpi_button_{card['id']}"
