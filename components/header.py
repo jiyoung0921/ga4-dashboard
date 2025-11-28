@@ -23,11 +23,71 @@ def render_header_with_controls(
     new_end = None
     new_scope = None
 
-    # ヒーローバナー上部（静的HTML）
-    st.markdown(
-        f"""
-        <div class="hero-banner">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
+    # グラデーションバナーをcontainerでラップ
+    with st.container():
+        # CSSでこのcontainerをグラデーションバナーにする
+        st.markdown(
+            f"""
+            <style>
+            /* ヒーローバナーコンテナ */
+            div[data-testid="stVerticalBlock"]:has(> div[data-testid="stVerticalBlock"] > div[data-testid="stMarkdownContainer"] > .hero-header-top) {{
+                background: linear-gradient(135deg, #7C6AEF 0%, #9D8FFF 50%, #FFB088 100%);
+                border-radius: 28px;
+                padding: 28px 32px 20px;
+                margin-bottom: 1.5rem;
+                position: relative;
+                overflow: visible;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            }}
+            
+            div[data-testid="stVerticalBlock"]:has(> div[data-testid="stVerticalBlock"] > div[data-testid="stMarkdownContainer"] > .hero-header-top)::before {{
+                content: "";
+                position: absolute;
+                top: -40%;
+                right: -15%;
+                width: 50%;
+                height: 180%;
+                background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
+                pointer-events: none;
+            }}
+            
+            /* ヒーローバナー内のpopoverボタン */
+            div[data-testid="stVerticalBlock"]:has(> div[data-testid="stVerticalBlock"] > div[data-testid="stMarkdownContainer"] > .hero-header-top) [data-testid="stPopover"] > button {{
+                background: rgba(255, 255, 255, 0.22) !important;
+                backdrop-filter: blur(8px) !important;
+                border-radius: 999px !important;
+                padding: 6px 14px !important;
+                font-size: 0.8rem !important;
+                font-weight: 500 !important;
+                color: white !important;
+                border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            }}
+            
+            div[data-testid="stVerticalBlock"]:has(> div[data-testid="stVerticalBlock"] > div[data-testid="stMarkdownContainer"] > .hero-header-top) [data-testid="stPopover"] > button:hover {{
+                background: rgba(255, 255, 255, 0.35) !important;
+                border-color: rgba(255, 255, 255, 0.5) !important;
+            }}
+            
+            /* ヒーローバナー内のカラム背景を透明に */
+            div[data-testid="stVerticalBlock"]:has(> div[data-testid="stVerticalBlock"] > div[data-testid="stMarkdownContainer"] > .hero-header-top) [data-testid="stHorizontalBlock"] {{
+                background: transparent !important;
+            }}
+            
+            div[data-testid="stVerticalBlock"]:has(> div[data-testid="stVerticalBlock"] > div[data-testid="stMarkdownContainer"] > .hero-header-top) [data-testid="column"] {{
+                background: transparent !important;
+            }}
+            </style>
+            
+            <div class="hero-header-top" style="
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                flex-wrap: wrap;
+                gap: 14px;
+                color: white;
+                position: relative;
+                z-index: 1;
+            ">
                 <div>
                     <div style="
                         display: flex;
@@ -42,7 +102,14 @@ def render_header_with_controls(
                         {Icons.activity(12, "white")}
                         ANALYTICS DASHBOARD
                     </div>
-                    <div class="hero-title">
+                    <div style="
+                        font-family: 'Quicksand', 'M PLUS Rounded 1c', sans-serif;
+                        font-size: 1.5rem;
+                        font-weight: 700;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    ">
                         {Icons.pie_chart(24, "white")}
                         {scope_label}
                     </div>
@@ -60,81 +127,69 @@ def render_header_with_controls(
                         {Icons.refresh_cw(10, "white")}
                         最終更新
                     </div>
-                    <div style="
-                        font-size: 0.85rem;
-                        font-weight: 600;
-                    ">{current_time}</div>
+                    <div style="font-size: 0.85rem; font-weight: 600;">{current_time}</div>
                 </div>
             </div>
-            <div class="hero-meta">
-        """,
-        unsafe_allow_html=True
-    )
-    
-    # チップ部分（Streamlit popover）
-    col1, col2, col_spacer = st.columns([2.2, 1.3, 4])
-    
-    with col1:
-        with st.popover(f"📅 {start_display} 〜 {end_display}"):
-            st.markdown("##### 期間を選択")
-            today = datetime.now().date()
-            
-            quick_cols = st.columns(3)
-            with quick_cols[0]:
-                if st.button("過去7日", key="quick_7d", use_container_width=True):
-                    new_start = (today - timedelta(days=6)).strftime("%Y-%m-%d")
-                    new_end = today.strftime("%Y-%m-%d")
-            with quick_cols[1]:
-                if st.button("過去30日", key="quick_30d", use_container_width=True):
-                    new_start = (today - timedelta(days=29)).strftime("%Y-%m-%d")
-                    new_end = today.strftime("%Y-%m-%d")
-            with quick_cols[2]:
-                if st.button("今月", key="quick_month", use_container_width=True):
-                    new_start = today.replace(day=1).strftime("%Y-%m-%d")
-                    new_end = today.strftime("%Y-%m-%d")
-            
-            st.divider()
-            
-            date_cols = st.columns(2)
-            with date_cols[0]:
-                selected_start = st.date_input(
-                    "開始日",
-                    value=datetime.strptime(start_date, "%Y-%m-%d").date(),
-                    key="header_start_date"
-                )
-            with date_cols[1]:
-                selected_end = st.date_input(
-                    "終了日",
-                    value=datetime.strptime(end_date, "%Y-%m-%d").date(),
-                    key="header_end_date"
-                )
-            
-            if st.button("適用", key="apply_date", type="primary", use_container_width=True):
-                new_start = selected_start.strftime("%Y-%m-%d")
-                new_end = selected_end.strftime("%Y-%m-%d")
-    
-    with col2:
-        with st.popover(f"🏷️ {scope_label}"):
-            st.markdown("##### サイト領域を選択")
-            for opt in site_scope_options:
-                is_selected = opt['value'] == site_scope
-                if st.button(
-                    f"{'✓ ' if is_selected else '　'}{opt['label']}", 
-                    key=f"scope_{opt['value']}",
-                    use_container_width=True,
-                    type="primary" if is_selected else "secondary"
-                ):
-                    if not is_selected:
-                        new_scope = opt['value']
-    
-    # ヒーローバナー閉じタグ
-    st.markdown(
-        """
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+            """,
+            unsafe_allow_html=True
+        )
+        
+        # チップ部分（Streamlit popover）
+        st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+        col1, col2, col_spacer = st.columns([2.2, 1.3, 4])
+        
+        with col1:
+            with st.popover(f"📅 {start_display} 〜 {end_display}"):
+                st.markdown("##### 期間を選択")
+                today = datetime.now().date()
+                
+                quick_cols = st.columns(3)
+                with quick_cols[0]:
+                    if st.button("過去7日", key="quick_7d", use_container_width=True):
+                        new_start = (today - timedelta(days=6)).strftime("%Y-%m-%d")
+                        new_end = today.strftime("%Y-%m-%d")
+                with quick_cols[1]:
+                    if st.button("過去30日", key="quick_30d", use_container_width=True):
+                        new_start = (today - timedelta(days=29)).strftime("%Y-%m-%d")
+                        new_end = today.strftime("%Y-%m-%d")
+                with quick_cols[2]:
+                    if st.button("今月", key="quick_month", use_container_width=True):
+                        new_start = today.replace(day=1).strftime("%Y-%m-%d")
+                        new_end = today.strftime("%Y-%m-%d")
+                
+                st.divider()
+                
+                date_cols = st.columns(2)
+                with date_cols[0]:
+                    selected_start = st.date_input(
+                        "開始日",
+                        value=datetime.strptime(start_date, "%Y-%m-%d").date(),
+                        key="header_start_date"
+                    )
+                with date_cols[1]:
+                    selected_end = st.date_input(
+                        "終了日",
+                        value=datetime.strptime(end_date, "%Y-%m-%d").date(),
+                        key="header_end_date"
+                    )
+                
+                if st.button("適用", key="apply_date", type="primary", use_container_width=True):
+                    new_start = selected_start.strftime("%Y-%m-%d")
+                    new_end = selected_end.strftime("%Y-%m-%d")
+        
+        with col2:
+            with st.popover(f"🏷️ {scope_label}"):
+                st.markdown("##### サイト領域を選択")
+                for opt in site_scope_options:
+                    is_selected = opt['value'] == site_scope
+                    if st.button(
+                        f"{'✓ ' if is_selected else '　'}{opt['label']}", 
+                        key=f"scope_{opt['value']}",
+                        use_container_width=True,
+                        type="primary" if is_selected else "secondary"
+                    ):
+                        if not is_selected:
+                            new_scope = opt['value']
     
     return new_start, new_end, new_scope
 
