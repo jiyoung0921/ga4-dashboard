@@ -13,7 +13,7 @@ def render_header_with_controls(
 ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
     """
     ヒーローヘッダーを描画し、クリック可能なチップで期間・領域を変更可能に
-    Returns: (new_start_date, new_end_date, new_site_scope) - 変更があった場合のみ値を返す
+    グラデーション内に全て一体化
     """
     scope_label = site_scope if site_scope else "全サイト"
     start_display = datetime.strptime(start_date, "%Y-%m-%d").strftime("%Y年%m月%d日")
@@ -24,7 +24,7 @@ def render_header_with_controls(
     new_end = None
     new_scope = None
 
-    # ヒーローバナー開始
+    # ヒーローバナー全体をカスタムHTMLで描画
     st.markdown(
         f"""
         <div class="hero-banner">
@@ -42,6 +42,10 @@ def render_header_with_controls(
                     ">
                         {Icons.activity(12, "white")}
                         ANALYTICS DASHBOARD
+                    </div>
+                    <div class="hero-title">
+                        {Icons.pie_chart(24, "white")}
+                        {scope_label}
                     </div>
                 </div>
                 <div style="text-align: right;">
@@ -63,31 +67,16 @@ def render_header_with_controls(
                     ">{current_time}</div>
                 </div>
             </div>
+            <div class="hero-chips-container">
         """,
         unsafe_allow_html=True
     )
     
-    # サイト領域選択（大きな見出しとして）- グラデーション内
-    title_col, spacer_col = st.columns([3, 2])
-    with title_col:
-        with st.popover(f"🏷️ {scope_label} ▾", use_container_width=False):
-            st.markdown("##### サイト領域を選択")
-            for i, opt in enumerate(site_scope_options):
-                is_selected = opt['value'] == site_scope
-                if st.button(
-                    f"{'✓ ' if is_selected else '　'}{opt['label']}", 
-                    key=f"scope_{opt['value']}",
-                    use_container_width=True,
-                    type="primary" if is_selected else "secondary"
-                ):
-                    if not is_selected:
-                        new_scope = opt['value']
+    # チップをグラデーション内に配置
+    chip_col1, chip_col2, chip_spacer = st.columns([2, 1.2, 2.8])
     
-    # 期間選択チップ - グラデーション内
-    st.markdown("<div style='margin-top: 12px;'>", unsafe_allow_html=True)
-    
-    chip_col, empty_col = st.columns([2, 3])
-    with chip_col:
+    with chip_col1:
+        # 期間選択ポップオーバー
         with st.popover(f"📅 {start_display} 〜 {end_display}", use_container_width=True):
             st.markdown("##### 期間を選択")
             today = datetime.now().date()
@@ -128,10 +117,29 @@ def render_header_with_controls(
                 new_start = selected_start.strftime("%Y-%m-%d")
                 new_end = selected_end.strftime("%Y-%m-%d")
     
-    st.markdown("</div>", unsafe_allow_html=True)
+    with chip_col2:
+        # サイト領域選択ポップオーバー
+        with st.popover(f"🏷️ {scope_label}", use_container_width=True):
+            st.markdown("##### サイト領域を選択")
+            for i, opt in enumerate(site_scope_options):
+                is_selected = opt['value'] == site_scope
+                if st.button(
+                    f"{'✓ ' if is_selected else '　'}{opt['label']}", 
+                    key=f"scope_{opt['value']}",
+                    use_container_width=True,
+                    type="primary" if is_selected else "secondary"
+                ):
+                    if not is_selected:
+                        new_scope = opt['value']
     
     # ヒーローバナーの閉じタグ
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown(
+        """
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     
     return new_start, new_end, new_scope
 

@@ -193,6 +193,13 @@ section[data-testid="stSidebar"] .stRadio[data-testid="stRadio"]:has([data-basew
     margin-top: 16px;
 }
 
+/* Container for interactive chips inside hero banner */
+.hero-chips-container {
+    margin-top: 16px;
+    position: relative;
+    z-index: 10;
+}
+
 .hero-chip {
     display: inline-flex;
     align-items: center;
@@ -715,28 +722,9 @@ hr {
     padding: 12px !important;
 }
 
-/* Hero banner title popover (site scope selector) - BIG title style */
-.hero-banner [data-testid="stPopover"]:first-of-type > button {
-    background: transparent !important;
-    border: none !important;
-    padding: 0 !important;
-    font-family: var(--font-display) !important;
-    font-size: 1.5rem !important;
-    font-weight: 700 !important;
-    color: white !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    cursor: pointer !important;
-    transition: opacity 0.2s ease !important;
-}
-
-.hero-banner [data-testid="stPopover"]:first-of-type > button:hover {
-    opacity: 0.85 !important;
-}
-
-/* Hero banner date chip popover */
-.hero-banner [data-testid="stPopover"]:not(:first-of-type) > button {
+/* Hero banner chips - both date and scope */
+.hero-banner [data-testid="stPopover"] > button,
+.hero-chips-container [data-testid="stPopover"] > button {
     background: rgba(255, 255, 255, 0.22) !important;
     backdrop-filter: blur(8px) !important;
     border-radius: 999px !important;
@@ -748,13 +736,20 @@ hr {
     transition: all 0.2s ease !important;
 }
 
-.hero-banner [data-testid="stPopover"]:not(:first-of-type) > button:hover {
+.hero-banner [data-testid="stPopover"] > button:hover,
+.hero-chips-container [data-testid="stPopover"] > button:hover {
     background: rgba(255, 255, 255, 0.35) !important;
     border-color: rgba(255, 255, 255, 0.5) !important;
 }
 
+/* Make columns inside hero banner transparent */
+.hero-banner [data-testid="column"],
+.hero-chips-container [data-testid="column"] {
+    background: transparent !important;
+}
+
 /* General popover button style (outside hero) */
-.main [data-testid="stPopover"] > button {
+.main [data-testid="stPopover"]:not(.hero-banner [data-testid="stPopover"]) > button {
     border-radius: var(--radius-sm) !important;
     padding: 8px 14px !important;
     font-size: 0.85rem !important;
