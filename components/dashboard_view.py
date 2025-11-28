@@ -184,7 +184,6 @@ def _render_kpi_cards(cards: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     chunk_size = 4
     for i in range(0, len(cards), chunk_size):
         chunk = cards[i:i + chunk_size]
-        st.markdown('<div class="kpi-row">', unsafe_allow_html=True)
         cols = st.columns(len(chunk))
         for col, card in zip(cols, chunk):
             value_text = card['value_text']
@@ -213,7 +212,6 @@ def _render_kpi_cards(cards: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
                 ):
                     if selected_card is None:
                         selected_card = card
-        st.markdown('</div>', unsafe_allow_html=True)
     return selected_card
 
 
@@ -248,13 +246,7 @@ def _show_kpi_modal(card: Dict[str, Any], ga4_client: GA4Client, site_scope: Opt
 
     container = st.container()
     with container:
-        st.markdown(
-            f"""
-            <div style="background: #FFFFFF; border-radius: 18px; padding: 24px; box-shadow: 0 24px 48px -32px rgba(47,42,38,0.45); margin-bottom: 24px;">
-                <h3 style="margin-top:0;">{card['label']}の週次推移</h3>
-            """,
-            unsafe_allow_html=True
-        )
+        st.subheader(f"{card['label']}の週次推移")
         if weekly.empty:
             st.info("データがありません")
         else:
@@ -271,7 +263,6 @@ def _show_kpi_modal(card: Dict[str, Any], ga4_client: GA4Client, site_scope: Opt
                 weekly[['week_label', 'value']].rename(columns={'week_label': '週', 'value': '件数'}),
                 width="stretch"
             )
-        st.markdown("</div>", unsafe_allow_html=True)
 
         if st.button("閉じる", key=f"close_modal_{card['id']}"):
             container.empty()
