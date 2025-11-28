@@ -94,7 +94,10 @@ def render_section_header(icon_name: str, title: str, subtitle: Optional[str] = 
     }
     
     icon_svg = icon_map.get(icon_name, Icons.bar_chart_3(20, "#7C6AEF"))
-    subtitle_html = f'<div style="font-size: 0.8rem; color: #718096; margin-top: 3px;">{subtitle}</div>' if subtitle else ''
+    subtitle_html = (
+        f'\n                <div style="font-size: 0.8rem; color: #718096; margin-top: 3px;">{subtitle}</div>'
+        if subtitle else ''
+    )
     
     _render_html(
         f"""
@@ -119,8 +122,7 @@ def render_section_header(icon_name: str, title: str, subtitle: Optional[str] = 
                     font-size: 1.15rem;
                     font-weight: 700;
                     color: #2D3748;
-                ">{title}</div>
-                {subtitle_html}
+                ">{title}</div>{subtitle_html}
             </div>
         </div>
         """
