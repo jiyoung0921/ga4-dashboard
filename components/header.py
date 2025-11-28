@@ -13,7 +13,6 @@ def render_header_with_controls(
 ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
     """
     ヒーローヘッダーを描画（チップ部分がクリック可能）
-    Streamlit containerにグラデーション背景を適用し、一体化させる
     """
     scope_label = site_scope if site_scope else "全サイト"
     start_display = datetime.strptime(start_date, "%Y-%m-%d").strftime("%Y年%m月%d日")
@@ -24,84 +23,57 @@ def render_header_with_controls(
     new_end = None
     new_scope = None
 
-    # このcontainer全体にグラデーション背景を適用するCSS
+    # ヒーローバナー全体をHTMLで描画（静的部分）
     st.markdown(
-        """
+        f"""
         <style>
-        /* hero-wrapperクラスを持つマーカーの親コンテナにグラデーションを適用 */
-        div[data-testid="stVerticalBlock"]:has(> div > div[data-testid="stMarkdownContainer"] .hero-marker) {
-            background: linear-gradient(135deg, #7C6AEF 0%, #9D8FFF 50%, #FFB088 100%) !important;
-            border-radius: 28px !important;
-            padding: 28px 32px !important;
-            margin-bottom: 1.5rem !important;
-            position: relative !important;
-            overflow: hidden !important;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06) !important;
-        }
+        .hero-banner-interactive {{
+            background: linear-gradient(135deg, #7C6AEF 0%, #9D8FFF 50%, #FFB088 100%);
+            border-radius: 28px;
+            padding: 28px 32px 20px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            margin-bottom: 0;
+        }}
         
-        /* 光のエフェクト */
-        div[data-testid="stVerticalBlock"]:has(> div > div[data-testid="stMarkdownContainer"] .hero-marker)::before {
-            content: "" !important;
-            position: absolute !important;
-            top: -40% !important;
-            right: -15% !important;
-            width: 50% !important;
-            height: 180% !important;
-            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%) !important;
-            pointer-events: none !important;
-        }
+        .hero-banner-interactive::before {{
+            content: "";
+            position: absolute;
+            top: -40%;
+            right: -15%;
+            width: 50%;
+            height: 180%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
+            pointer-events: none;
+        }}
         
-        /* container内のすべての要素の背景を透明に */
-        div[data-testid="stVerticalBlock"]:has(> div > div[data-testid="stMarkdownContainer"] .hero-marker) [data-testid="stVerticalBlock"],
-        div[data-testid="stVerticalBlock"]:has(> div > div[data-testid="stMarkdownContainer"] .hero-marker) [data-testid="stHorizontalBlock"],
-        div[data-testid="stVerticalBlock"]:has(> div > div[data-testid="stMarkdownContainer"] .hero-marker) [data-testid="column"] {
-            background: transparent !important;
-        }
+        .hero-banner-chips {{
+            background: linear-gradient(135deg, #8878F0 0%, #A99AFF 50%, #FFBC99 100%);
+            border-radius: 0 0 28px 28px;
+            padding: 0 32px 20px;
+            margin-top: -8px;
+            position: relative;
+        }}
         
         /* popoverボタンをチップスタイルに */
-        div[data-testid="stVerticalBlock"]:has(> div > div[data-testid="stMarkdownContainer"] .hero-marker) [data-testid="stPopover"] > button {
-            background: rgba(255, 255, 255, 0.22) !important;
-            backdrop-filter: blur(8px) !important;
-            border-radius: 999px !important;
-            padding: 6px 14px !important;
-            font-size: 0.8rem !important;
-            font-weight: 500 !important;
-            color: white !important;
-            border: 1px solid rgba(255, 255, 255, 0.3) !important;
-            height: auto !important;
-            min-height: 0 !important;
-            line-height: 1.4 !important;
-        }
+        .hero-banner-chips + div [data-testid="stHorizontalBlock"] {{
+            background: transparent !important;
+        }}
         
-        div[data-testid="stVerticalBlock"]:has(> div > div[data-testid="stMarkdownContainer"] .hero-marker) [data-testid="stPopover"] > button:hover {
-            background: rgba(255, 255, 255, 0.35) !important;
-            border-color: rgba(255, 255, 255, 0.5) !important;
-        }
-        
-        /* popoverボタン内のpタグ */
-        div[data-testid="stVerticalBlock"]:has(> div > div[data-testid="stMarkdownContainer"] .hero-marker) [data-testid="stPopover"] > button p {
-            color: white !important;
-        }
+        .hero-banner-chips + div [data-testid="column"] {{
+            background: transparent !important;
+        }}
         </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # グラデーションを適用するcontainer
-    with st.container():
-        # マーカー（このcontainerにグラデーションを適用するためのフラグ）
-        st.markdown('<div class="hero-marker" style="display:none;"></div>', unsafe_allow_html=True)
         
-        # ヘッダー上部（タイトルと最終更新）
-        st.markdown(
-            f"""
+        <div class="hero-banner-interactive">
             <div style="
                 display: flex;
                 justify-content: space-between;
                 align-items: flex-start;
                 flex-wrap: wrap;
                 gap: 14px;
-                color: white;
                 position: relative;
                 z-index: 1;
             ">
@@ -147,68 +119,115 @@ def render_header_with_controls(
                     <div style="font-size: 0.85rem; font-weight: 600;">{current_time}</div>
                 </div>
             </div>
-            """,
-            unsafe_allow_html=True
-        )
+        </div>
+        <div class="hero-banner-chips"></div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    # popoverスタイル（グラデーション継続部分に配置）
+    st.markdown(
+        """
+        <style>
+        /* チップエリアの親要素 */
+        .element-container:has(.hero-banner-chips) + .element-container + div[data-testid="stHorizontalBlock"],
+        .element-container:has(.hero-banner-chips) + div + div[data-testid="stHorizontalBlock"] {
+            background: linear-gradient(135deg, #8878F0 0%, #A99AFF 50%, #FFBC99 100%) !important;
+            border-radius: 0 0 28px 28px !important;
+            padding: 0 32px 20px !important;
+            margin-top: -20px !important;
+            position: relative !important;
+        }
         
-        # スペーサー
-        st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+        /* popoverボタン */
+        .element-container:has(.hero-banner-chips) ~ div [data-testid="stPopover"] > button {
+            background: rgba(255, 255, 255, 0.22) !important;
+            backdrop-filter: blur(8px) !important;
+            border-radius: 999px !important;
+            padding: 6px 14px !important;
+            font-size: 0.8rem !important;
+            font-weight: 500 !important;
+            color: white !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            height: auto !important;
+            min-height: 0 !important;
+        }
         
-        # チップ部分（Streamlit popover）
-        col1, col2, col_spacer = st.columns([2.2, 1.3, 4])
+        .element-container:has(.hero-banner-chips) ~ div [data-testid="stPopover"] > button:hover {
+            background: rgba(255, 255, 255, 0.35) !important;
+            border-color: rgba(255, 255, 255, 0.5) !important;
+        }
         
-        with col1:
-            with st.popover(f"📅 {start_display} 〜 {end_display}"):
-                st.markdown("##### 期間を選択")
-                today = datetime.now().date()
-                
-                quick_cols = st.columns(3)
-                with quick_cols[0]:
-                    if st.button("過去7日", key="quick_7d", use_container_width=True):
-                        new_start = (today - timedelta(days=6)).strftime("%Y-%m-%d")
-                        new_end = today.strftime("%Y-%m-%d")
-                with quick_cols[1]:
-                    if st.button("過去30日", key="quick_30d", use_container_width=True):
-                        new_start = (today - timedelta(days=29)).strftime("%Y-%m-%d")
-                        new_end = today.strftime("%Y-%m-%d")
-                with quick_cols[2]:
-                    if st.button("今月", key="quick_month", use_container_width=True):
-                        new_start = today.replace(day=1).strftime("%Y-%m-%d")
-                        new_end = today.strftime("%Y-%m-%d")
-                
-                st.divider()
-                
-                date_cols = st.columns(2)
-                with date_cols[0]:
-                    selected_start = st.date_input(
-                        "開始日",
-                        value=datetime.strptime(start_date, "%Y-%m-%d").date(),
-                        key="header_start_date"
-                    )
-                with date_cols[1]:
-                    selected_end = st.date_input(
-                        "終了日",
-                        value=datetime.strptime(end_date, "%Y-%m-%d").date(),
-                        key="header_end_date"
-                    )
-                
-                if st.button("適用", key="apply_date", type="primary", use_container_width=True):
-                    new_start = selected_start.strftime("%Y-%m-%d")
-                    new_end = selected_end.strftime("%Y-%m-%d")
+        .element-container:has(.hero-banner-chips) ~ div [data-testid="stPopover"] > button p {
+            color: white !important;
+        }
         
-        with col2:
-            with st.popover(f"🏷️ {scope_label}"):
-                st.markdown("##### サイト領域を選択")
-                for opt in site_scope_options:
-                    is_selected = opt['value'] == site_scope
-                    if st.button(
-                        f"{'✓ ' if is_selected else '　'}{opt['label']}", 
-                        key=f"scope_{opt['value']}",
-                        use_container_width=True,
-                        type="primary" if is_selected else "secondary"
-                    ):
-                        if not is_selected:
-                            new_scope = opt['value']
+        .element-container:has(.hero-banner-chips) ~ div [data-testid="column"] {
+            background: transparent !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    # チップ部分（Streamlit popover）
+    chip_col1, chip_col2, chip_spacer = st.columns([2.2, 1.3, 4])
+    
+    with chip_col1:
+        with st.popover(f"📅 {start_display} 〜 {end_display}"):
+            st.markdown("##### 期間を選択")
+            today = datetime.now().date()
+            
+            quick_cols = st.columns(3)
+            with quick_cols[0]:
+                if st.button("過去7日", key="quick_7d", use_container_width=True):
+                    new_start = (today - timedelta(days=6)).strftime("%Y-%m-%d")
+                    new_end = today.strftime("%Y-%m-%d")
+            with quick_cols[1]:
+                if st.button("過去30日", key="quick_30d", use_container_width=True):
+                    new_start = (today - timedelta(days=29)).strftime("%Y-%m-%d")
+                    new_end = today.strftime("%Y-%m-%d")
+            with quick_cols[2]:
+                if st.button("今月", key="quick_month", use_container_width=True):
+                    new_start = today.replace(day=1).strftime("%Y-%m-%d")
+                    new_end = today.strftime("%Y-%m-%d")
+            
+            st.divider()
+            
+            date_cols = st.columns(2)
+            with date_cols[0]:
+                selected_start = st.date_input(
+                    "開始日",
+                    value=datetime.strptime(start_date, "%Y-%m-%d").date(),
+                    key="header_start_date"
+                )
+            with date_cols[1]:
+                selected_end = st.date_input(
+                    "終了日",
+                    value=datetime.strptime(end_date, "%Y-%m-%d").date(),
+                    key="header_end_date"
+                )
+            
+            if st.button("適用", key="apply_date", type="primary", use_container_width=True):
+                new_start = selected_start.strftime("%Y-%m-%d")
+                new_end = selected_end.strftime("%Y-%m-%d")
+    
+    with chip_col2:
+        with st.popover(f"🏷️ {scope_label}"):
+            st.markdown("##### サイト領域を選択")
+            for opt in site_scope_options:
+                is_selected = opt['value'] == site_scope
+                if st.button(
+                    f"{'✓ ' if is_selected else '　'}{opt['label']}", 
+                    key=f"scope_{opt['value']}",
+                    use_container_width=True,
+                    type="primary" if is_selected else "secondary"
+                ):
+                    if not is_selected:
+                        new_scope = opt['value']
+    
+    # バナー下のマージン
+    st.markdown("<div style='margin-bottom: 1.5rem;'></div>", unsafe_allow_html=True)
     
     return new_start, new_end, new_scope
 
