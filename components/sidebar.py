@@ -1,4 +1,4 @@
-"""サイドバーコンポーネント - Modern Design"""
+"""サイドバーコンポーネント - Modern Design with Lucide Icons"""
 import streamlit as st
 from datetime import datetime, timedelta
 from typing import Tuple
@@ -7,6 +7,7 @@ from utils.config import (
     get_ga4_dimension_options,
     get_ga4_metric_options,
 )
+from components.icons import Icons
 
 
 def render_sidebar() -> Tuple[str, str, str, str]:
@@ -14,7 +15,7 @@ def render_sidebar() -> Tuple[str, str, str, str]:
     
     # サイドバーヘッダー
     st.sidebar.markdown(
-        """
+        f"""
         <div style="
             padding: 8px 0 24px;
             border-bottom: 1px solid rgba(124, 106, 239, 0.1);
@@ -26,15 +27,15 @@ def render_sidebar() -> Tuple[str, str, str, str]:
                 gap: 12px;
             ">
                 <div style="
-                    width: 40px;
-                    height: 40px;
-                    border-radius: 12px;
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 14px;
                     background: linear-gradient(135deg, #7C6AEF 0%, #FF8C5A 100%);
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 1.25rem;
-                ">📊</div>
+                    color: white;
+                ">{Icons.bar_chart_3(22, "white")}</div>
                 <div>
                     <div style="
                         font-family: 'Plus Jakarta Sans', sans-serif;
@@ -57,7 +58,7 @@ def render_sidebar() -> Tuple[str, str, str, str]:
     
     # モード選択（アイコン付き）
     st.sidebar.markdown(
-        """
+        f"""
         <div style="
             font-size: 0.7rem;
             font-weight: 600;
@@ -65,7 +66,13 @@ def render_sidebar() -> Tuple[str, str, str, str]:
             text-transform: uppercase;
             letter-spacing: 0.08em;
             margin-bottom: 8px;
-        ">モード</div>
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        ">
+            {Icons.layout_dashboard(14, "#6E6E8A")}
+            モード
+        </div>
         """,
         unsafe_allow_html=True
     )
@@ -81,7 +88,7 @@ def render_sidebar() -> Tuple[str, str, str, str]:
     
     # 期間選択
     st.sidebar.markdown(
-        """
+        f"""
         <div style="
             font-size: 0.7rem;
             font-weight: 600;
@@ -93,12 +100,7 @@ def render_sidebar() -> Tuple[str, str, str, str]:
             align-items: center;
             gap: 6px;
         ">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
+            {Icons.calendar_days(14, "#6E6E8A")}
             期間
         </div>
         """,
@@ -171,7 +173,7 @@ def render_sidebar() -> Tuple[str, str, str, str]:
     
     # サイト領域選択
     st.sidebar.markdown(
-        """
+        f"""
         <div style="
             font-size: 0.7rem;
             font-weight: 600;
@@ -183,10 +185,7 @@ def render_sidebar() -> Tuple[str, str, str, str]:
             align-items: center;
             gap: 6px;
         ">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-            </svg>
+            {Icons.layers(14, "#6E6E8A")}
             サイト領域
         </div>
         """,
@@ -256,7 +255,7 @@ def render_sidebar() -> Tuple[str, str, str, str]:
     
     # フッター
     st.sidebar.markdown(
-        """
+        f"""
         <div style="
             position: fixed;
             bottom: 0;
@@ -273,13 +272,8 @@ def render_sidebar() -> Tuple[str, str, str, str]:
                 font-size: 0.75rem;
                 color: #9E9EB8;
             ">
-                <div style="
-                    width: 8px;
-                    height: 8px;
-                    border-radius: 50%;
-                    background: #10B981;
-                "></div>
-                GA4 接続中
+                {Icons.wifi(14, "#10B981")}
+                <span style="color: #10B981; font-weight: 500;">GA4 接続中</span>
             </div>
         </div>
         """,
