@@ -621,25 +621,17 @@ def _normalize_url_for_merge(url: str) -> str:
     return url.lower()
 
 
-def _render_cv_landing_page_table(df: pd.DataFrame):
-    """ランディングページ×CV分析テーブルを表示（GSCデータ含む）"""
+def _render_cv_landing_page_table(df: pd.DataFrame, title_map: Optional[Dict[str, str]] = None):
+    """ランディングページ×CV分析テーブルを表示（タイトル付き）"""
     
     if df.empty:
         render_message("データがありません")
         return
     
     # ヘッダー
-    has_gsc = 'clicks' in df.columns
-    if has_gsc:
-        cols = st.columns([4, 1, 1, 1])
-        cols[0].markdown("**ページ**")
-        cols[1].markdown("**クリック数**")
-        cols[2].markdown("**CV数**")
-        cols[3].markdown("**CVR**")
-    else:
-        cols = st.columns([5, 1])
-        cols[0].markdown("**ページ**")
-        cols[1].markdown("**CV数**")
+    cols = st.columns([5, 1])
+    cols[0].markdown("**ページタイトル**")
+    cols[1].markdown("**CV数**")
     
     st.markdown("<hr style='margin: 8px 0; border: none; border-top: 1px solid #E2E8F0;'>", unsafe_allow_html=True)
     
@@ -647,44 +639,45 @@ def _render_cv_landing_page_table(df: pd.DataFrame):
         landing_page = row['landingPage']
         cv_count = int(row['eventCount'])
         
-        # パスから表示名を生成
-        path_parts = landing_page.split('/')
-        display_name = '/'.join(path_parts[-2:]) if len(path_parts) > 2 else landing_page
-        if not display_name or display_name == '(not set)':
-            display_name = landing_page
+        # ランディングページからページパスを抽出して、タイトルを検索
+        # /www-abitus-co-jp/lp/uscpa/ad8d → /lp/uscpa/ad8d
+        page_path = '/' + '/'.join(landing_page.split('/')[2:]) if landing_page.count('/') >= 2 else landing_page
+        
+        # タイトルマップから検索
+        display_title = None
+        if title_map:
+            # 完全一致を試す
+            display_title = title_map.get(page_path)
+            # 見つからない場合は部分一致を試す
+            if not display_title:
+                for path, title in title_map.items():
+                    if page_path in path or path in page_path:
+                        display_title = title
+                        break
+        
+        # タイトルが見つからない場合はパスから生成
+        if not display_title or display_title == '(not set)':
+            path_parts = landing_page.split('/')
+            display_title = '/'.join(path_parts[-2:]) if len(path_parts) > 2 else landing_page
+        
+        # タイトルが長すぎる場合は省略
+        if len(display_title) > 50:
+            display_title = display_title[:47] + '...'
         
         url = _convert_landing_page_to_url(landing_page)
         link_icon = Icons.external_link(14, "#718096")
         
-        if has_gsc:
-            clicks = int(row.get('clicks', 0))
-            cvr = (cv_count / clicks * 100) if clicks > 0 else 0
-            
-            cols = st.columns([4, 1, 1, 1])
-            cols[0].markdown(
-                f"""<div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 13px;">{display_name}</span>
-                    <a href="{url}" target="_blank" rel="noopener noreferrer" 
-                       style="display: inline-flex; text-decoration: none;" 
-                       title="{url}">{link_icon}</a>
-                </div>""",
-                unsafe_allow_html=True
-            )
-            cols[1].markdown(f"<span style='font-size: 14px;'>{clicks:,}</span>", unsafe_allow_html=True)
-            cols[2].markdown(f"<span style='font-size: 14px; font-weight: 600; color: #7C6AEF;'>{cv_count:,}</span>", unsafe_allow_html=True)
-            cols[3].markdown(f"<span style='font-size: 14px;'>{cvr:.1f}%</span>", unsafe_allow_html=True)
-        else:
-            cols = st.columns([5, 1])
-            cols[0].markdown(
-                f"""<div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 13px;">{display_name}</span>
-                    <a href="{url}" target="_blank" rel="noopener noreferrer" 
-                       style="display: inline-flex; text-decoration: none;" 
-                       title="{url}">{link_icon}</a>
-                </div>""",
-                unsafe_allow_html=True
-            )
-            cols[1].markdown(f"<span style='font-size: 14px; font-weight: 600;'>{cv_count:,}</span>", unsafe_allow_html=True)
+        cols = st.columns([5, 1])
+        cols[0].markdown(
+            f"""<div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 13px;">{display_title}</span>
+                <a href="{url}" target="_blank" rel="noopener noreferrer" 
+                   style="display: inline-flex; text-decoration: none;" 
+                   title="{url}">{link_icon}</a>
+            </div>""",
+            unsafe_allow_html=True
+        )
+        cols[1].markdown(f"<span style='font-size: 14px; font-weight: 600;'>{cv_count:,}</span>", unsafe_allow_html=True)
 
 
 def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
@@ -708,6 +701,10 @@ def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site
     if event_data.empty:
         render_message("データがありません。期間を広げてみてください。", "warning")
         return
+    
+    # ページタイトルのマッピングを取得
+    title_df = ga4_client.get_page_title_mapping(start_date, end_date, site_scope, limit=2000)
+    title_map = dict(zip(title_df['pagePath'], title_df['pageTitle'])) if not title_df.empty else {}
  
     event_data['eventCount'] = event_data['eventCount'].astype(float)
     
@@ -729,6 +726,7 @@ def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site
     with st.expander("生データ（参考）", expanded=False):
         st.write(f"取得件数: {len(event_data)} 件")
         st.write(f"イベント: {event_data['eventName'].unique().tolist()}")
+        st.write(f"タイトルマップ件数: {len(title_map)} 件")
         st.dataframe(event_data.head(50), use_container_width=True)
  
     # CV総数が多いランディングページ TOP10
@@ -744,14 +742,19 @@ def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site
         Icons.bar_chart_3(18, SUBHEADER_ICON_COLOR),
         "CV総数が多いランディングページ TOP10"
     )
-    _render_cv_landing_page_table(overall)
+    _render_cv_landing_page_table(overall, title_map)
     
-    # グラフも表示
+    # グラフも表示（タイトルを使用）
     if not overall.empty:
         chart_df = overall.copy()
-        chart_df['displayLabel'] = chart_df['landingPage'].apply(
-            lambda x: '/'.join(x.split('/')[-2:]) if '/' in x else x
-        )
+        def get_chart_label(lp):
+            page_path = '/' + '/'.join(lp.split('/')[2:]) if lp.count('/') >= 2 else lp
+            title = title_map.get(page_path, '')
+            if title and title != '(not set)':
+                return title[:25] + '...' if len(title) > 25 else title
+            return '/'.join(lp.split('/')[-2:]) if '/' in lp else lp
+        
+        chart_df['displayLabel'] = chart_df['landingPage'].apply(get_chart_label)
         fig = Visualization.create_bar_chart(
             chart_df.head(10),
             'displayLabel',
@@ -791,14 +794,19 @@ def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site
         render_message("該当イベントのデータがありません")
         return
  
-    _render_cv_landing_page_table(event_df)
+    _render_cv_landing_page_table(event_df, title_map)
     
     # グラフ
     if not event_df.empty:
         chart_df = event_df.copy()
-        chart_df['displayLabel'] = chart_df['landingPage'].apply(
-            lambda x: '/'.join(x.split('/')[-2:]) if '/' in x else x
-        )
+        def get_chart_label(lp):
+            page_path = '/' + '/'.join(lp.split('/')[2:]) if lp.count('/') >= 2 else lp
+            title = title_map.get(page_path, '')
+            if title and title != '(not set)':
+                return title[:25] + '...' if len(title) > 25 else title
+            return '/'.join(lp.split('/')[-2:]) if '/' in lp else lp
+        
+        chart_df['displayLabel'] = chart_df['landingPage'].apply(get_chart_label)
         fig = Visualization.create_bar_chart(
             chart_df.head(10),
             'displayLabel',

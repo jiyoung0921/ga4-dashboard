@@ -516,34 +516,43 @@ class GA4Client:
  
         return df
     
-    def get_cv_by_landing_page_with_title(
+    def get_page_title_mapping(
         self,
         start_date: str,
         end_date: str,
         site_scope: Optional[str] = None,
-        event_names: Optional[List[str]] = None,
-        limit: int = 500
+        limit: int = 1000
     ) -> pd.DataFrame:
-        """CVイベント×ランディングページ×ページタイトルを取得"""
-        event_filter = None
-        if event_names:
-            event_filter = FilterExpression(
-                filter=Filter(
-                    field_name="eventName",
-                    in_list_filter=Filter.InListFilter(values=event_names)
+        """ページパスとタイトルの対応表を取得（page_viewイベントから）"""
+        # page_viewイベントでページパスとタイトルを取得
+        page_view_filter = FilterExpression(
+            filter=Filter(
+                field_name="eventName",
+                string_filter=Filter.StringFilter(
+                    match_type=Filter.StringFilter.MatchType.EXACT,
+                    value="page_view"
                 )
             )
+        )
  
         df = self.run_report(
-            dimensions=['landingPage', 'pageTitle', 'eventName'],
+            dimensions=['pagePath', 'pageTitle'],
             metrics=['eventCount'],
             date_ranges=[{'start_date': start_date, 'end_date': end_date}],
             dimension_filter=self._merge_filters(
                 self._build_site_scope_filter(site_scope),
-                event_filter
+                page_view_filter
             ),
             limit=limit
         )
- 
-        return df
+        
+        if df.empty:
+            return pd.DataFrame(columns=['pagePath', 'pageTitle'])
+        
+        # 重複を除去（最も閲覧数が多いタイトルを採用）
+        df['eventCount'] = df['eventCount'].astype(float)
+        df = df.sort_values('eventCount', ascending=False)
+        df = df.drop_duplicates(subset=['pagePath'], keep='first')
+        
+        return df[['pagePath', 'pageTitle']]
 
