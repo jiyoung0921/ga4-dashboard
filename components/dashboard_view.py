@@ -589,6 +589,81 @@ def render_overview_tab(ga4_client: GA4Client, start_date: str, end_date: str, s
         _render_uscpa_source_breakdown(ga4_client, start_date, end_date)
 
 
+def _convert_landing_page_to_url(landing_page: str) -> str:
+    """GA4のlandingPage形式をURLに変換
+    例: /www-abitus-co-jp/lp/uscpa/ad8d → https://www.abitus.co.jp/lp/uscpa/ad8d
+    """
+    if not landing_page or landing_page == '(not set)':
+        return ''
+    
+    # 先頭のスラッシュを除去
+    path = landing_page.lstrip('/')
+    
+    # ドメイン部分を抽出して変換
+    # /www-abitus-co-jp/path → https://www.abitus.co.jp/path
+    parts = path.split('/', 1)
+    domain_part = parts[0]
+    rest_path = '/' + parts[1] if len(parts) > 1 else '/'
+    
+    # ハイフンをドットに変換してドメインを復元
+    # www-abitus-co-jp → www.abitus.co.jp
+    domain = domain_part.replace('-', '.')
+    
+    return f"https://{domain}{rest_path}"
+
+
+def _render_landing_page_table(df: pd.DataFrame, page_col: str, count_col: str, title_col: str = None):
+    """ランディングページのテーブルをタイトル＋リンクアイコン形式で表示"""
+    
+    if df.empty:
+        render_message("データがありません")
+        return
+    
+    # ヘッダー
+    cols = st.columns([5, 1])
+    cols[0].markdown("**ページ**")
+    cols[1].markdown("**CV数**")
+    
+    st.markdown("<hr style='margin: 8px 0; border: none; border-top: 1px solid #E2E8F0;'>", unsafe_allow_html=True)
+    
+    for _, row in df.iterrows():
+        landing_page = row[page_col]
+        count = int(row[count_col])
+        
+        # ページタイトルがあれば使用、なければパスから生成
+        if title_col and title_col in row and row[title_col] and row[title_col] != '(not set)':
+            display_title = row[title_col]
+            # タイトルが長すぎる場合は省略
+            if len(display_title) > 60:
+                display_title = display_title[:57] + '...'
+        else:
+            # パスから簡易タイトルを生成
+            display_title = landing_page.split('/')[-1] if '/' in landing_page else landing_page
+            if not display_title or display_title == '(not set)':
+                display_title = landing_page
+        
+        url = _convert_landing_page_to_url(landing_page)
+        
+        cols = st.columns([5, 1])
+        
+        # タイトル＋リンクアイコン
+        if url:
+            link_icon = Icons.external_link(14, "#718096")
+            cols[0].markdown(
+                f"""<div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 14px;">{display_title}</span>
+                    <a href="{url}" target="_blank" rel="noopener noreferrer" 
+                       style="display: inline-flex; text-decoration: none;" 
+                       title="{url}">{link_icon}</a>
+                </div>""",
+                unsafe_allow_html=True
+            )
+        else:
+            cols[0].markdown(f"<span style='font-size: 14px;'>{display_title}</span>", unsafe_allow_html=True)
+        
+        cols[1].markdown(f"<span style='font-size: 14px; font-weight: 600;'>{count:,}</span>", unsafe_allow_html=True)
+
+
 def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
     """イベントタブをレンダリング（ランディングページ別CV分析）"""
     from components.header import render_section_header
@@ -598,8 +673,8 @@ def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site
  
     event_names = get_cv_events_for_scope(site_scope)
     
-    # ランディングページ×CVイベントのデータを取得
-    event_data = ga4_client.get_cv_by_landing_page(
+    # ランディングページ×CVイベント×ページタイトルのデータを取得
+    event_data = ga4_client.get_cv_by_landing_page_with_title(
         start_date,
         end_date,
         site_scope=site_scope,
@@ -627,6 +702,9 @@ def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site
     with st.expander("生データ（参考）", expanded=False):
         st.write(f"取得件数: {len(event_data)} 件")
         st.dataframe(event_data.head(30), use_container_width=True)
+    
+    # ページタイトルのマッピングを作成（landingPage → pageTitle）
+    title_map = event_data.groupby('landingPage')['pageTitle'].first().to_dict()
  
     # CV総数が多いランディングページ TOP10
     overall = (
@@ -636,21 +714,27 @@ def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site
         .sort_values('eventCount', ascending=False)
         .head(10)
     )
+    # ページタイトルを追加
+    overall['pageTitle'] = overall['landingPage'].map(title_map)
  
     _render_subsection_heading(
         Icons.bar_chart_3(18, SUBHEADER_ICON_COLOR),
         "CV総数が多いランディングページ TOP10"
     )
-    if overall.empty:
-        render_message("データがありません")
-    else:
-        display_overall = overall.rename(columns={'landingPage': 'ランディングページ', 'eventCount': 'CV総数'})
-        st.dataframe(display_overall, use_container_width=True)
-        
-        # グラフも表示
+    _render_landing_page_table(overall, 'landingPage', 'eventCount', 'pageTitle')
+    
+    # グラフも表示（タイトルを使用）
+    if not overall.empty:
+        chart_df = overall.copy()
+        chart_df['displayLabel'] = chart_df.apply(
+            lambda r: (r['pageTitle'][:30] + '...' if len(str(r['pageTitle'])) > 30 else r['pageTitle']) 
+                      if r['pageTitle'] and r['pageTitle'] != '(not set)' 
+                      else r['landingPage'].split('/')[-1],
+            axis=1
+        )
         fig = Visualization.create_bar_chart(
-            overall.head(10),
-            'landingPage',
+            chart_df.head(10),
+            'displayLabel',
             'eventCount',
             "",
             "ランディングページ",
@@ -684,22 +768,27 @@ def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site
         render_message("該当イベントのデータがありません")
         return
  
-    display_df = event_df[['landingPage', 'eventCount']].rename(
-        columns={'landingPage': 'ランディングページ', 'eventCount': 'CV数'}
-    )
-    st.dataframe(display_df, use_container_width=True)
+    _render_landing_page_table(event_df, 'landingPage', 'eventCount', 'pageTitle')
     
     # グラフ
-    fig = Visualization.create_bar_chart(
-        event_df.head(10),
-        'landingPage',
-        'eventCount',
-        f"{selected_display}のランディングページ別CV数",
-        "ランディングページ",
-        "CV数",
-        orientation='h'
-    )
-    st.plotly_chart(fig, use_container_width=True)
+    if not event_df.empty:
+        chart_df = event_df.copy()
+        chart_df['displayLabel'] = chart_df.apply(
+            lambda r: (r['pageTitle'][:30] + '...' if len(str(r['pageTitle'])) > 30 else r['pageTitle']) 
+                      if r['pageTitle'] and r['pageTitle'] != '(not set)' 
+                      else r['landingPage'].split('/')[-1],
+            axis=1
+        )
+        fig = Visualization.create_bar_chart(
+            chart_df.head(10),
+            'displayLabel',
+            'eventCount',
+            f"{selected_display}のランディングページ別CV数",
+            "ランディングページ",
+            "CV数",
+            orientation='h'
+        )
+        st.plotly_chart(fig, use_container_width=True)
  
 
 
