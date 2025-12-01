@@ -595,39 +595,37 @@ def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site
     render_section_header("event", "記事別イベント分析")
  
     event_names = get_cv_events_for_scope(site_scope)
+    
+    # site_scopeなしで全データを取得
     event_data = ga4_client.get_event_page_counts(
         start_date,
         end_date,
-        site_scope=site_scope,  # サイト領域フィルタを適用
+        site_scope=None,  # フィルタなしで全データ取得
         event_names=event_names,
         limit=1000
     )
  
     if event_data.empty:
-        render_message("データがありません。期間を広げるか、サイト領域を変更してみてください。", "warning")
+        render_message("データがありません。期間を広げてみてください。", "warning")
         return
  
     event_data['eventCount'] = event_data['eventCount'].astype(float)
- 
-    # サンクスページや不要なパスを除外
-    exclude_patterns = [
-        '/thank',
-        '/thanks',
-        'request_thanks',
-        'thank-you',
-        'thankyou',
-        'pathmake',
-        '(not set)',
-        '(none)'
-    ]
     
-    page_series = event_data['pagePath'].astype(str)
-    for pattern in exclude_patterns:
-        event_data = event_data[~page_series.str.contains(pattern, case=False, na=False)]
-        page_series = event_data['pagePath'].astype(str)
+    # デバッグ: 取得した生データを表示
+    with st.expander("🔍 取得した生データ（デバッグ用）", expanded=False):
+        st.write(f"取得件数: {len(event_data)} 件")
+        st.write(f"イベント名: {event_data['eventName'].unique().tolist()}")
+        st.dataframe(event_data.head(50), use_container_width=True)
+ 
+    # サンクスページのみ除外（緩いフィルタ）
+    exclude_patterns = ['thank', '(not set)']
+    
+    page_series = event_data['pagePath'].astype(str).str.lower()
+    mask = ~page_series.str.contains('|'.join(exclude_patterns), case=False, na=False, regex=True)
+    event_data = event_data[mask]
  
     if event_data.empty:
-        render_message("フィルタ後のデータがありません。期間を広げてみてください。", "warning")
+        render_message("フィルタ後のデータがありません。", "warning")
         return
  
     with st.expander("生データ（参考）"):
