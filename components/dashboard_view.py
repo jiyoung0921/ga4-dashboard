@@ -598,57 +598,36 @@ def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site
     event_data = ga4_client.get_event_page_counts(
         start_date,
         end_date,
-        site_scope=None,
+        site_scope=site_scope,  # サイト領域フィルタを適用
         event_names=event_names,
         limit=1000
     )
  
     if event_data.empty:
-        render_message("データがありません")
+        render_message("データがありません。期間を広げるか、サイト領域を変更してみてください。", "warning")
         return
  
     event_data['eventCount'] = event_data['eventCount'].astype(float)
-    event_data = event_data.rename(columns={'pagePath': 'pagePath', 'eventName': 'eventName'})
  
-    page_series = event_data['pagePath'].astype(str)
-    prefixes = get_article_path_prefixes(site_scope)
-    filtered = event_data.copy()
-    mask_applied = False
-    if prefixes:
-        mask = pd.Series(False, index=event_data.index)
-        for prefix in prefixes:
-            mask = mask | page_series.str.contains(prefix, na=False)
-        if mask.any():
-            filtered = event_data[mask]
-            mask_applied = True
-    if not mask_applied:
-        abitus_mask = page_series.str.contains("abitus.co.jp", case=False, na=False)
-        if abitus_mask.any():
-            filtered = event_data[abitus_mask]
-            mask_applied = True
-    if mask_applied:
-        event_data = filtered
-    else:
-        render_message("アビタス（abitus.co.jp）に紐づく記事データが見つかりません。期間やサイト領域を変更してみてください。")
-        return
- 
+    # サンクスページや不要なパスを除外
     exclude_patterns = [
         '/thank',
         '/thanks',
         'request_thanks',
         'thank-you',
         'thankyou',
-        '/lp-pathmake-co-jp/',
         'pathmake',
-        '(not set)'
+        '(not set)',
+        '(none)'
     ]
-    filtered = event_data.copy()
+    
+    page_series = event_data['pagePath'].astype(str)
     for pattern in exclude_patterns:
-        filtered = filtered[~filtered['pagePath'].astype(str).str.contains(pattern, na=False)]
-    event_data = filtered
+        event_data = event_data[~page_series.str.contains(pattern, case=False, na=False)]
+        page_series = event_data['pagePath'].astype(str)
  
     if event_data.empty:
-        render_message("記事に該当するデータがありません")
+        render_message("フィルタ後のデータがありません。期間を広げてみてください。", "warning")
         return
  
     with st.expander("生データ（参考）"):
