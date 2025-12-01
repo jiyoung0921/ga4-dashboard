@@ -1,13 +1,10 @@
-"""サイドバーコンポーネント - Elegant Radio Button Design"""
+"""サイドバーコンポーネント - Elegant Radio Button Design（Phase 1: 簡素化）"""
 import streamlit as st
 from datetime import datetime, timedelta
 from typing import Tuple
-from utils.config import (
-    get_site_scope_options,
-    get_ga4_dimension_options,
-    get_ga4_metric_options,
-)
+from utils.config import get_site_scope_options
 from components.icons import Icons
+from components.messages import render_message
 
 
 def render_sidebar() -> Tuple[str, str, str, str]:
@@ -161,7 +158,7 @@ def render_sidebar() -> Tuple[str, str, str, str]:
         end_date_obj = end_input
         
         if start_date_obj > end_date_obj:
-            st.sidebar.warning("開始日が終了日より後です")
+            render_message("開始日が終了日より後です", "warning", container=st.sidebar)
             start_date_obj, end_date_obj = end_date_obj, start_date_obj
     
     start_date = start_date_obj.strftime('%Y-%m-%d')
@@ -201,72 +198,6 @@ def render_sidebar() -> Tuple[str, str, str, str]:
     site_scope_value = site_scope_options[site_scope_index]['value']
     
     st.sidebar.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
-    st.sidebar.markdown(
-        f"""
-        <div style="
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: #FF8C5A;
-            letter-spacing: 0.04em;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        ">
-            {Icons.settings(14, "#FF8C5A")}
-            カスタムレポート
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    
-    # カスタムレポート設定（折りたたみ）
-    metadata = st.session_state.get('ga4_metadata', {})
-    default_dimension_options = get_ga4_dimension_options()
-    default_metric_options = get_ga4_metric_options()
-    dimension_map = {opt['value']: opt['label'] for opt in default_dimension_options}
-    metric_map = {opt['value']: opt['label'] for opt in default_metric_options}
-    
-    available_dimensions = metadata.get('dimensions') or [opt['value'] for opt in default_dimension_options]
-    available_metrics = metadata.get('metrics') or [opt['value'] for opt in default_metric_options]
-    
-    current_config = st.session_state.get('custom_report_config', {
-        'dimensions': ['deviceCategory', 'eventName'],
-        'metrics': ['eventCount'],
-        'limit': 50
-    })
-    
-    def _format(value: str, mapping: dict) -> str:
-        return mapping.get(value, value)
-    
-    with st.sidebar.expander("カスタムレポート設定", expanded=False):
-        selected_dimensions = st.multiselect(
-            "ディメンション",
-            options=available_dimensions,
-            default=current_config.get('dimensions', []),
-            format_func=lambda value: _format(value, dimension_map),
-            key="custom_dimensions_select"
-        )
-        selected_metrics = st.multiselect(
-            "指標",
-            options=available_metrics,
-            default=current_config.get('metrics', []),
-            format_func=lambda value: _format(value, metric_map),
-            key="custom_metrics_select"
-        )
-        limit_value = st.number_input(
-            "取得件数",
-            min_value=1,
-            max_value=250,
-            value=current_config.get('limit', 50),
-            step=1
-        )
-        st.caption("カスタムタブで確認できます")
-        st.session_state.custom_report_config = {
-            'dimensions': selected_dimensions,
-            'metrics': selected_metrics,
-            'limit': limit_value
-        }
     
     # フッター
     st.sidebar.markdown(

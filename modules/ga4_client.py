@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 from utils.auth import get_credentials
 from utils.config import get_ga4_property_id
 import streamlit as st
+from components.messages import render_message
 
 
 class GA4Client:
@@ -103,7 +104,7 @@ class GA4Client:
             return pd.DataFrame(rows)
         
         except Exception as e:
-            st.error(f"GA4レポートの取得に失敗しました: {str(e)}")
+            render_message(f"GA4レポートの取得に失敗しました: {str(e)}", "error")
             return pd.DataFrame()
     
     def get_overview_metrics(self, start_date: str, end_date: str, site_scope: Optional[str] = None) -> Dict[str, float]:
@@ -248,7 +249,7 @@ class GA4Client:
             }
         
         except Exception as e:
-            st.error(f"リアルタイムデータの取得に失敗しました: {str(e)}")
+            render_message(f"リアルタイムデータの取得に失敗しました: {str(e)}", "error")
             return {'activeUsers': 0, 'topPages': []}
 
     def get_metadata_options(self) -> Dict[str, List[str]]:
@@ -264,7 +265,7 @@ class GA4Client:
                 'metrics': metrics
             }
         except Exception as e:
-            st.warning(f"GA4メタデータの取得に失敗しました: {str(e)}")
+            render_message(f"GA4メタデータの取得に失敗しました: {str(e)}", "warning")
             return {'dimensions': [], 'metrics': []}
     
     def get_utm_data(self, start_date: str, end_date: str, site_scope: Optional[str] = None) -> pd.DataFrame:

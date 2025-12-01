@@ -1,16 +1,16 @@
-"""ダッシュボードビューコンポーネント"""
+"""ダッシュボードビューコンポーネント（Phase 1: 簡素化）"""
 import streamlit as st
 import pandas as pd
 from modules.ga4_client import GA4Client
 from modules.gsc_client import GSCClient
 from modules.data_processor import DataProcessor
 from modules.visualization import Visualization
-import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import re
 from typing import Optional, List, Dict, Tuple, Any
 from textwrap import dedent
 from components.icons import Icons
+from components.messages import render_message
 from utils.config import (
     get_cv_events_for_scope,
     get_event_display_name,
@@ -164,7 +164,7 @@ def _format_delta(metric: str, current: float, previous: float) -> tuple[str, st
 def _render_event_source_summary(ga4_client: GA4Client, start_date: str, end_date: str) -> None:
     summary_df = get_event_sources_by_scope_cached(ga4_client, start_date, end_date)
     if summary_df.empty:
-        st.info("参照元別のイベントデータがありません。")
+        render_message("参照元別のイベントデータがありません。")
         return
     summary_df = summary_df.rename(columns={
         'sessionSourceMedium': '参照元/メディア',
@@ -181,7 +181,7 @@ def _render_event_source_summary(ga4_client: GA4Client, start_date: str, end_dat
 def _render_uscpa_source_breakdown(ga4_client: GA4Client, start_date: str, end_date: str) -> None:
     source_data = ga4_client.get_traffic_source(start_date, end_date, site_scope="USCPA")
     if source_data.empty:
-        st.info("USCPAの参照元データがありません。")
+        render_message("USCPAの参照元データがありません。")
         return
     source_data = source_data.copy()
     source_data['sourceMedium'] = (
@@ -256,6 +256,153 @@ def _render_kpi_cards(cards: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     return selected_card
 
 
+def _render_kpi_cards_with_breakdown(
+    cards: List[Dict[str, Any]],
+    ga4_client: GA4Client,
+    start_date: str,
+    end_date: str,
+    site_scope: Optional[str]
+) -> Optional[Dict[str, Any]]:
+    """KPIカードをレンダリング（週次推移＋参照元ブレークダウンボタン付き）"""
+    selected_card: Optional[Dict[str, Any]] = None
+    chunk_size = 4
+    
+    for i in range(0, len(cards), chunk_size):
+        chunk = cards[i:i + chunk_size]
+        cols = st.columns(len(chunk))
+        for col, card in zip(cols, chunk):
+            value_text = card['value_text']
+            delta_text = card.get('delta_text', '')
+            delta_class = card.get('delta_class', '')
+            prev_text = card.get('previous_text', '')
+            with col:
+                card_html = dedent(
+                    f"""
+                    <div class="kpi-card">
+                        <div class="kpi-card__meta">
+                            <div class="kpi-label">{card['label']}</div>
+                            <div class="kpi-chip">{card.get('chip_text', '')}</div>
+                        </div>
+                        <div class="kpi-value">{value_text}</div>
+                        <div class="kpi-divider"></div>
+                        <div class="kpi-prev">前期間: {prev_text if prev_text else '-'}</div>
+                        {f'<div class="kpi-delta {delta_class}">{delta_text}</div>' if delta_text else ''}
+                    </div>
+                    """
+                ).strip()
+                st.markdown(card_html, unsafe_allow_html=True)
+                
+                # ボタン行（2カラム）
+                btn_col1, btn_col2 = st.columns(2)
+                with btn_col1:
+                    if st.button(
+                        "📈 週次推移",
+                        key=f"kpi_button_{card['id']}",
+                        use_container_width=True
+                    ):
+                        if selected_card is None:
+                            selected_card = card
+                
+                with btn_col2:
+                    # CVイベントの場合のみ参照元ボタンを表示
+                    if card['metric_type'] == 'event':
+                        if st.button(
+                            "🔍 参照元",
+                            key=f"breakdown_button_{card['id']}",
+                            use_container_width=True
+                        ):
+                            st.session_state['breakdown_modal'] = {
+                                'card': card,
+                                'start_date': start_date,
+                                'end_date': end_date,
+                                'site_scope': site_scope
+                            }
+    
+    # 参照元ブレークダウンモーダルの表示
+    breakdown_info = st.session_state.pop('breakdown_modal', None)
+    if breakdown_info:
+        _show_event_source_breakdown(
+            breakdown_info['card'],
+            ga4_client,
+            breakdown_info['start_date'],
+            breakdown_info['end_date'],
+            breakdown_info['site_scope']
+        )
+    
+    return selected_card
+
+
+def _show_event_source_breakdown(
+    card: Dict[str, Any],
+    ga4_client: GA4Client,
+    start_date: str,
+    end_date: str,
+    site_scope: Optional[str]
+) -> None:
+    """イベントの参照元ブレークダウンを表示"""
+    event_name = card.get('metric_key')
+    if not event_name:
+        return
+    
+    container = st.container()
+    with container:
+        _render_subsection_heading(
+            Icons.share_2(18, SUBHEADER_ICON_COLOR),
+            f"{card['label']}の参照元内訳"
+        )
+        
+        # イベントの参照元別データを取得
+        df = ga4_client.get_event_source_summary(
+            start_date,
+            end_date,
+            site_scope=site_scope,
+            event_names=[event_name],
+            limit=100
+        )
+        
+        if df.empty:
+            render_message("参照元データがありません")
+        else:
+            # 参照元/メディア別に集計
+            df['eventCount'] = df['eventCount'].astype(float)
+            source_summary = (
+                df.groupby('sessionSourceMedium')['eventCount']
+                .sum()
+                .reset_index()
+                .sort_values('eventCount', ascending=False)
+                .head(10)
+            )
+            
+            if source_summary.empty:
+                render_message("参照元データがありません")
+            else:
+                # グラフ表示
+                fig = Visualization.create_bar_chart(
+                    source_summary,
+                    'sessionSourceMedium',
+                    'eventCount',
+                    f"{card['label']}の参照元別発生数",
+                    "参照元/メディア",
+                    "イベント数",
+                    orientation='h'
+                )
+                st.plotly_chart(fig, width="stretch")
+                
+                # テーブル表示
+                display_df = source_summary.rename(columns={
+                    'sessionSourceMedium': '参照元/メディア',
+                    'eventCount': 'イベント数'
+                })
+                st.dataframe(display_df, width="stretch")
+                
+                # 合計
+                total = source_summary['eventCount'].sum()
+                st.caption(f"合計: {int(total):,} 件")
+        
+        if st.button("閉じる", key=f"close_breakdown_{card['id']}"):
+            container.empty()
+
+
 def _aggregate_weekly(df: pd.DataFrame, value_column: str) -> pd.DataFrame:
     if df.empty:
         return pd.DataFrame(columns=['week_start', 'value'])
@@ -287,9 +434,12 @@ def _show_kpi_modal(card: Dict[str, Any], ga4_client: GA4Client, site_scope: Opt
 
     container = st.container()
     with container:
-        st.subheader(f"{card['label']}の週次推移")
+        _render_subsection_heading(
+            Icons.line_chart(18, SUBHEADER_ICON_COLOR),
+            f"{card['label']}の週次推移"
+        )
         if weekly.empty:
-            st.info("データがありません")
+            render_message("データがありません")
         else:
             fig = Visualization.create_bar_chart(
                 weekly,
@@ -310,7 +460,7 @@ def _show_kpi_modal(card: Dict[str, Any], ga4_client: GA4Client, site_scope: Opt
 
 
 def render_overview_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
-    """概要タブをレンダリング"""
+    """概要タブをレンダリング（Phase 1: 流入元・UTM情報を統合）"""
     from components.header import render_section_header
     render_section_header("overview", "概要")
     
@@ -358,7 +508,8 @@ def render_overview_tab(ga4_client: GA4Client, start_date: str, end_date: str, s
             'metric_key': event_name
         })
 
-    selected_card = _render_kpi_cards(cards)
+    # KPIカードをレンダリング（参照元ブレークダウンボタン付き）
+    selected_card = _render_kpi_cards_with_breakdown(cards, ga4_client, start_date, end_date, site_scope)
     if selected_card:
         st.session_state['kpi_modal'] = {
             'card': selected_card,
@@ -376,137 +527,66 @@ def render_overview_tab(ga4_client: GA4Client, start_date: str, end_date: str, s
         )
 
     st.divider()
-    _render_event_source_summary(ga4_client, start_date, end_date)
 
-    if site_scope == "USCPA":
-        _render_uscpa_source_breakdown(ga4_client, start_date, end_date)
-
-
-def render_traffic_source_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
-    """流入元タブをレンダリング"""
-    from components.header import render_section_header
-    render_section_header("traffic", "流入元")
-    
-    # チャネルグループ別データ
+    # === 流入元情報（統合） ===
+    _render_subsection_heading(
+        Icons.share_2(18, SUBHEADER_ICON_COLOR),
+        "チャネルグループ別セッション数"
+    )
     source_data = ga4_client.get_traffic_source(start_date, end_date, site_scope=site_scope)
-    
-    if not source_data.empty:
-        # チャネルグループ別の集計
-        if 'sessionDefaultChannelGroup' in source_data.columns:
-            channel_group = source_data.groupby('sessionDefaultChannelGroup')['sessions'].sum().reset_index()
-            channel_group = channel_group.sort_values('sessions', ascending=False)
-            
-            _render_subsection_heading(
-                Icons.share_2(18, SUBHEADER_ICON_COLOR),
-                "チャネルグループ別セッション数"
-            )
+    if not source_data.empty and 'sessionDefaultChannelGroup' in source_data.columns:
+        channel_group = source_data.groupby('sessionDefaultChannelGroup')['sessions'].sum().reset_index()
+        channel_group = channel_group.sort_values('sessions', ascending=False)
+        fig = Visualization.create_bar_chart(
+            channel_group,
+            'sessionDefaultChannelGroup',
+            'sessions',
+            "",
+            "チャネルグループ",
+            "セッション数",
+            orientation='h'
+        )
+        st.plotly_chart(fig, width="stretch")
+    else:
+        render_message("チャネルグループデータがありません")
+
+    st.divider()
+
+    # === UTM/キャンペーン情報（統合） ===
+    _render_subsection_heading(
+        Icons.megaphone(18, SUBHEADER_ICON_COLOR),
+        "キャンペーン別セッション数"
+    )
+    utm_data = ga4_client.get_utm_data(start_date, end_date, site_scope=site_scope)
+    if not utm_data.empty and 'sessionCampaignName' in utm_data.columns:
+        campaign_data = utm_data.groupby('sessionCampaignName')['sessions'].sum().reset_index()
+        campaign_data = campaign_data.sort_values('sessions', ascending=False).head(10)
+        # (not set)を除外
+        campaign_data = campaign_data[campaign_data['sessionCampaignName'] != '(not set)']
+        if not campaign_data.empty:
             fig = Visualization.create_bar_chart(
-                channel_group,
-                'sessionDefaultChannelGroup',
+                campaign_data,
+                'sessionCampaignName',
                 'sessions',
-                "チャネルグループ別セッション数",
-                "チャネルグループ",
+                "",
+                "キャンペーン",
                 "セッション数",
                 orientation='h'
             )
             st.plotly_chart(fig, width="stretch")
-
-        
-        # 参照元/メディア別データ
-        _render_subsection_heading(
-            Icons.file_text(18, SUBHEADER_ICON_COLOR),
-            "参照元/メディア別データ"
-        )
-        if 'sessionSource' in source_data.columns and 'sessionMedium' in source_data.columns:
-            source_medium = source_data.groupby(['sessionSource', 'sessionMedium'])['sessions'].sum().reset_index()
-            source_medium = source_medium.sort_values('sessions', ascending=False).head(20)
-            st.dataframe(source_medium, width="stretch")
-        
-        # ランディングページ
-        _render_subsection_heading(
-            Icons.external_link(18, SUBHEADER_ICON_COLOR),
-            "ランディングページ"
-        )
-        landing_pages = ga4_client.get_landing_pages(start_date, end_date, limit=10, site_scope=site_scope)
-        if not landing_pages.empty:
-            st.dataframe(landing_pages, width="stretch")
+        else:
+            render_message("有効なキャンペーンデータがありません")
     else:
-        st.info("データがありません")
+        render_message("キャンペーンデータがありません")
 
+    st.divider()
 
-def render_device_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
-    """デバイスタブをレンダリング"""
-    from components.header import render_section_header
-    render_section_header("device", "デバイス")
-    
-    device_data = ga4_client.get_device_data(start_date, end_date, site_scope=site_scope)
-    
-    if not device_data.empty:
-        # デバイスカテゴリ別の集計
-        if 'deviceCategory' in device_data.columns:
-            device_summary = device_data.groupby('deviceCategory').agg({
-                'sessions': 'sum',
-                'bounceRate': 'mean'
-            }).reset_index()
-            
-            _render_subsection_heading(
-                Icons.smartphone(18, SUBHEADER_ICON_COLOR),
-                "デバイスカテゴリ別セッション数"
-            )
-            fig = Visualization.create_bar_chart(
-                device_summary,
-                'deviceCategory',
-                'sessions',
-                "デバイスカテゴリ別セッション数",
-                "デバイス",
-                "セッション数"
-            )
-            st.plotly_chart(fig, width="stretch")
-            
-            _render_subsection_heading(
-                Icons.smartphone(18, SUBHEADER_ICON_COLOR),
-                "デバイスカテゴリ別直帰率"
-            )
-            fig2 = Visualization.create_bar_chart(
-                device_summary,
-                'deviceCategory',
-                'bounceRate',
-                "デバイスカテゴリ別直帰率",
-                "デバイス",
-                "直帰率"
-            )
-            st.plotly_chart(fig2, width="stretch")
+    # === イベント参照元サマリー ===
+    _render_event_source_summary(ga4_client, start_date, end_date)
 
-            # 時系列データ
-            if 'date' in device_data.columns:
-                _render_subsection_heading(
-                    Icons.line_chart(18, SUBHEADER_ICON_COLOR),
-                    "デバイス別時系列トレンド"
-                )
-                fig3 = go.Figure()
-                colors = ['#5B4FDB', '#4A90E2', '#50C878']
-                for i, device in enumerate(device_data['deviceCategory'].unique()):
-                    device_df = device_data[device_data['deviceCategory'] == device].sort_values('date')
-                    fig3.add_trace(go.Scatter(
-                        x=device_df['date'],
-                        y=device_df['sessions'],
-                        mode='lines+markers',
-                        name=device,
-                        line=dict(width=2, color=colors[i % len(colors)]),
-                        marker=dict(size=6)
-                    ))
-                fig3.update_layout(
-                    title="デバイス別セッション数トレンド",
-                    xaxis_title="日付",
-                    yaxis_title="セッション数",
-                    hovermode='x unified',
-                    template='plotly_white',
-                    font=dict(family="Noto Sans JP, Roboto, sans-serif"),
-                    height=400
-                )
-                st.plotly_chart(fig3, width="stretch")
-    else:
-        st.info("データがありません")
+    # USCPA固有の参照元分析
+    if site_scope == "USCPA":
+        _render_uscpa_source_breakdown(ga4_client, start_date, end_date)
 
 
 def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
@@ -524,7 +604,7 @@ def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site
     )
  
     if event_data.empty:
-        st.info("データがありません")
+        render_message("データがありません")
         return
  
     event_data['eventCount'] = event_data['eventCount'].astype(float)
@@ -549,7 +629,7 @@ def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site
     if mask_applied:
         event_data = filtered
     else:
-        st.info("アビタス（abitus.co.jp）に紐づく記事データが見つかりません。期間やサイト領域を変更してみてください。")
+        render_message("アビタス（abitus.co.jp）に紐づく記事データが見つかりません。期間やサイト領域を変更してみてください。")
         return
  
     exclude_patterns = [
@@ -568,7 +648,7 @@ def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site
     event_data = filtered
  
     if event_data.empty:
-        st.info("記事に該当するデータがありません")
+        render_message("記事に該当するデータがありません")
         return
  
     with st.expander("生データ（参考）"):
@@ -582,20 +662,26 @@ def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site
         .head(5)
     )
  
-    st.subheader("イベント総数が多い記事 TOP5")
+    _render_subsection_heading(
+        Icons.bar_chart_3(18, SUBHEADER_ICON_COLOR),
+        "イベント総数が多い記事 TOP5"
+    )
     if overall.empty:
-        st.info("データがありません")
+        render_message("データがありません")
     else:
         display_overall = overall.rename(columns={'pagePath': '記事URL', 'eventCount': 'イベント総数'})
         st.dataframe(display_overall, width="stretch")
  
-    st.subheader("イベント別 記事 TOP5")
+    _render_subsection_heading(
+        Icons.target(18, SUBHEADER_ICON_COLOR),
+        "イベント別 記事 TOP5"
+    )
     if event_names:
         display_mapping = {get_event_display_name(name): name for name in event_names}
         selected_display = st.selectbox("イベントを選択", list(display_mapping.keys()))
         selected_event = display_mapping[selected_display]
     else:
-        st.info("イベント設定がありません")
+        render_message("イベント設定がありません")
         return
  
     event_df = (
@@ -605,7 +691,7 @@ def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site
     )
  
     if event_df.empty:
-        st.info("該当イベントのデータがありません")
+        render_message("該当イベントのデータがありません")
         return
  
     display_df = event_df[['pagePath', 'eventCount']].rename(
@@ -613,111 +699,6 @@ def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site
     )
     st.dataframe(display_df, width="stretch")
  
- 
-@st.cache_data(ttl=30, hash_funcs={GA4Client: lambda client: client.property_id})  # 30秒間キャッシュ
-def get_realtime_data_cached(ga4_client: GA4Client):
-    """リアルタイムデータを取得（30秒キャッシュ）"""
-    return ga4_client.get_realtime_data()
-
-
-def render_realtime_tab(ga4_client: GA4Client, site_scope: Optional[str]):
-    """リアルタイムタブをレンダリング"""
-    from components.header import render_section_header
-    render_section_header("realtime", "リアルタイム")
-    
-    # リアルタイムデータを取得（30秒キャッシュ）
-    realtime_data = get_realtime_data_cached(ga4_client)
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.metric(
-            "アクティブユーザー数",
-            f"{int(realtime_data.get('activeUsers', 0)):,}",
-            delta=None
-        )
-    
-    # 過去30分間のページビューは別途実装が必要
-    with col2:
-        st.metric(
-            "過去30分間のページビュー",
-            "---",
-            delta=None,
-            help="この機能は今後実装予定です"
-        )
-    
-    st.divider()
-    
-    # トップページ
-    _render_subsection_heading(
-        Icons.activity(18, SUBHEADER_ICON_COLOR),
-        "リアルタイムトップページ"
-    )
-    top_pages = realtime_data.get('topPages', [])
-    if top_pages:
-        top_pages_df = pd.DataFrame(top_pages)
-        st.dataframe(top_pages_df, width="stretch")
-    else:
-        st.info("データがありません")
-    
-    # 自動更新
-    refresh_icon_col, refresh_btn_col = st.columns([0.08, 0.92])
-    with refresh_icon_col:
-        st.markdown(
-            f"""
-            <div style="
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                height: 100%;
-                margin-top: 0.5rem;
-            ">
-                {Icons.refresh_cw(16, SUBHEADER_ICON_COLOR)}
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    with refresh_btn_col:
-        if st.button("更新", key="refresh_realtime"):
-            get_realtime_data_cached.clear()
-            st.rerun()
-
-
-def render_utm_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
-    """UTMタブをレンダリング"""
-    from components.header import render_section_header
-    render_section_header("utm", "UTMパラメータ")
-    
-    utm_data = ga4_client.get_utm_data(start_date, end_date, site_scope=site_scope)
-    
-    if not utm_data.empty:
-        _render_subsection_heading(
-            Icons.megaphone(18, SUBHEADER_ICON_COLOR),
-            "UTMパラメータ別データ"
-        )
-        st.dataframe(utm_data, width="stretch")
-        
-        # キャンペーン別セッション数
-        if 'sessionCampaignName' in utm_data.columns:
-            campaign_data = utm_data.groupby('sessionCampaignName')['sessions'].sum().reset_index()
-            campaign_data = campaign_data.sort_values('sessions', ascending=False).head(20)
-            
-            _render_subsection_heading(
-                Icons.bar_chart_3(18, SUBHEADER_ICON_COLOR),
-                "キャンペーン別セッション数"
-            )
-            fig = Visualization.create_bar_chart(
-                campaign_data,
-                'sessionCampaignName',
-                'sessions',
-                "キャンペーン別セッション数",
-                "キャンペーン",
-                "セッション数",
-                orientation='h'
-            )
-            st.plotly_chart(fig, width="stretch")
-    else:
-        st.info("データがありません")
 
 
 def render_seo_tab(ga4_client: GA4Client, gsc_client: Optional[GSCClient], start_date: str, end_date: str, site_scope: Optional[str]):
@@ -726,7 +707,7 @@ def render_seo_tab(ga4_client: GA4Client, gsc_client: Optional[GSCClient], start
     render_section_header("seo", "SEO")
     
     if gsc_client is None:
-        st.warning("Google Search Consoleが接続されていません。")
+        render_message("Google Search Consoleが接続されていません。", "warning")
         return
     
     # GSCデータを取得
@@ -751,7 +732,7 @@ def render_seo_tab(ga4_client: GA4Client, gsc_client: Optional[GSCClient], start
         )
         st.dataframe(merged_data.head(20), width="stretch")
     else:
-        st.info("データがありません")
+        render_message("データがありません")
     
     # 検索クエリデータ
     if not query_data.empty:
@@ -779,83 +760,25 @@ def render_seo_tab(ga4_client: GA4Client, gsc_client: Optional[GSCClient], start
         st.plotly_chart(fig, width="stretch")
 
 
-def render_custom_report_tab(
-    ga4_client: GA4Client,
-    start_date: str,
-    end_date: str,
-    site_scope: Optional[str],
-    custom_config: Optional[Dict[str, Any]]
-):
-    """カスタムレポートタブ"""
-    from components.header import render_section_header
-    render_section_header("custom", "カスタムレポート")
-    if custom_config is None or not custom_config.get('metrics'):
-        st.info("設定ボタンからディメンションと指標を選択してください。")
-        return
-
-    dimensions = custom_config.get('dimensions', [])
-    metrics = custom_config.get('metrics', [])
-    limit = custom_config.get('limit', 50)
-
-    df = ga4_client.get_custom_report(
-        dimensions,
-        metrics,
-        start_date,
-        end_date,
-        site_scope=site_scope,
-        limit=limit
-    )
-
-    if df.empty:
-        st.info("該当データがありません。設定を見直してください。")
-        return
-
-    if 'date' in df.columns:
-        try:
-            df['date'] = pd.to_datetime(df['date'], format='%Y%m%d')
-        except Exception:
-            pass
-
-    st.write(f"ディメンション: {', '.join(dimensions) if dimensions else 'なし'}")
-    st.write(f"指標: {', '.join(metrics)}")
-    st.dataframe(df, width="stretch")
-
-
 def render_dashboard_view(
     ga4_client: GA4Client,
     gsc_client: Optional[GSCClient],
     start_date: str,
     end_date: str,
-    site_scope: Optional[str],
-    custom_config: Optional[Dict[str, Any]]
+    site_scope: Optional[str]
 ):
-    """ダッシュボードビューをレンダリング"""
-    # タブを作成
+    """ダッシュボードビューをレンダリング（Phase 1: 簡素化）"""
+    # タブを作成（概要・イベント・SEOの3タブに集約）
     tabs = st.tabs([
-        "概要", "流入元", "デバイス", "イベント", "リアルタイム", "UTM", "SEO", "カスタム"
+        "概要", "イベント", "SEO"
     ])
     
     with tabs[0]:
         render_overview_tab(ga4_client, start_date, end_date, site_scope)
     
     with tabs[1]:
-        render_traffic_source_tab(ga4_client, start_date, end_date, site_scope)
-    
-    with tabs[2]:
-        render_device_tab(ga4_client, start_date, end_date, site_scope)
-    
-    with tabs[3]:
         render_event_tab(ga4_client, start_date, end_date, site_scope)
     
-    with tabs[4]:
-        render_realtime_tab(ga4_client, site_scope)
-    
-    with tabs[5]:
-        render_utm_tab(ga4_client, start_date, end_date, site_scope)
-    
-    with tabs[6]:
+    with tabs[2]:
         render_seo_tab(ga4_client, gsc_client, start_date, end_date, site_scope)
-
-    with tabs[7]:
-        render_custom_report_tab(ga4_client, start_date, end_date, site_scope, custom_config)
 

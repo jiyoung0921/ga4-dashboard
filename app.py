@@ -20,6 +20,7 @@ from components.sidebar import render_sidebar
 from components.dashboard_view import render_dashboard_view
 from components.chat_view import render_chat_view
 from components.header import render_header
+from components.messages import render_message
 from utils.config import get_ga4_property_id, get_gsc_site_url
 from pathlib import Path
 
@@ -50,10 +51,10 @@ def initialize_clients():
                 st.session_state.ga4_client = GA4Client()
             else:
                 st.session_state.ga4_client = None
-                st.error("GA4プロパティIDが設定されていません。")
+                render_message("GA4プロパティIDが設定されていません。", "error")
         except Exception as e:
             st.session_state.ga4_client = None
-            st.error(f"GA4クライアントの初期化に失敗しました: {str(e)}")
+            render_message(f"GA4クライアントの初期化に失敗しました: {str(e)}", "error")
     
     # GSCクライアント（オプション）
     if 'gsc_client' not in st.session_state:
@@ -74,13 +75,6 @@ def initialize_clients():
     ):
         st.session_state.ga4_metadata = st.session_state.ga4_client.get_metadata_options()
 
-    if 'custom_report_config' not in st.session_state:
-        st.session_state.custom_report_config = {
-            'dimensions': ['deviceCategory', 'eventName'],
-            'metrics': ['eventCount'],
-            'limit': 50
-        }
-
 
 def main():
     """メイン関数"""
@@ -94,10 +88,12 @@ def main():
     
     # メインコンテンツ
     if st.session_state.ga4_client is None:
-        st.error("""
-        ## 設定が必要です
-        
-        GA4ダッシュボードを使用するには、以下の設定が必要です:
+        render_message(
+            "GA4ダッシュボードを使用するには、Streamlit Secretsと環境変数の設定が必要です。以下の手順に従ってください。",
+            "error"
+        )
+        st.markdown("""
+        ## 設定手順
         
         1. **Streamlit Secretsの設定**
            - `.streamlit/secrets.toml` ファイルを作成
@@ -138,8 +134,7 @@ def main():
             st.session_state.gsc_client,
             start_date,
             end_date,
-            site_scope,
-            st.session_state.get('custom_report_config')
+            site_scope
         )
     elif mode == "対話アシスタント":
         render_chat_view(

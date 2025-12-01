@@ -6,6 +6,7 @@ import pandas as pd
 from utils.auth import get_credentials
 from utils.config import get_gsc_site_url
 import streamlit as st
+from components.messages import render_message
 
 
 class GSCClient:
@@ -70,10 +71,10 @@ class GSCClient:
             return pd.DataFrame(rows)
         
         except HttpError as e:
-            st.error(f"GSCデータの取得に失敗しました: {str(e)}")
+            render_message(f"GSCデータの取得に失敗しました: {str(e)}", "error")
             return pd.DataFrame()
         except Exception as e:
-            st.error(f"予期しないエラーが発生しました: {str(e)}")
+            render_message(f"予期しないエラーが発生しました: {str(e)}", "error")
             return pd.DataFrame()
     
     def get_query_data(self, start_date: str, end_date: str, limit: int = 100) -> pd.DataFrame:

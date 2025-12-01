@@ -4,6 +4,7 @@ from google.auth.transport.requests import Request
 from typing import Optional, Dict, Any
 from utils.config import get_service_account_info
 import streamlit as st
+from components.messages import render_message
 
 
 def get_credentials() -> Optional[service_account.Credentials]:
@@ -22,7 +23,7 @@ def get_credentials() -> Optional[service_account.Credentials]:
         )
         return credentials
     except Exception as e:
-        st.error(f"認証情報の取得に失敗しました: {str(e)}")
+        render_message(f"認証情報の取得に失敗しました: {str(e)}", "error")
         return None
 
 

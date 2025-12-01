@@ -6,18 +6,97 @@ from modules.gsc_client import GSCClient
 from modules.query_parser import QueryParser
 from modules.data_processor import DataProcessor
 from modules.visualization import Visualization
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from utils.config import (
     get_event_alias_map,
-    get_event_display_name
+    get_event_display_name,
+    get_site_scope_options
 )
 from datetime import datetime, timedelta
+from components.icons import Icons
+
+# 指標のラベルマッピング
+metric_labels = {
+    'sessions': 'セッション数',
+    'totalUsers': 'ユーザー数',
+    'screenPageViews': 'ページビュー',
+    'bounceRate': '直帰率',
+    'averageSessionDuration': '平均セッション時間',
+    'eventCount': 'イベント数',
+    'conversions': 'コンバージョン数'
+}
+
+# 率系の指標（100倍して%表示）
+rate_metrics = {'bounceRate'}
+
+# 時間系の指標（秒→分変換）
+duration_metrics = {'averageSessionDuration'}
+
+# 平均を取るべき指標（sumではなくmean）
+non_sum_metrics = {'bounceRate', 'averageSessionDuration'}
+
+# サイト領域の検出パターン
+SITE_SCOPE_KEYWORDS = {
+    'USCPA': ['USCPA', 'uscpa', 'Uscpa', '米国公認会計士'],
+    'MBA': ['MBA', 'mba'],
+    'CIA': ['CIA', 'cia', '内部監査人'],
+    'CISA': ['CISA', 'cisa', '公認情報システム監査人'],
+    'CFE': ['CFE', 'cfe', '公認不正検査士'],
+    'IFRS': ['IFRS', 'ifrs', '国際財務報告基準']
+}
+
+
+def _detect_site_scope_from_query(query: str) -> Optional[str]:
+    """質問文からサイト領域を検出"""
+    for scope, keywords in SITE_SCOPE_KEYWORDS.items():
+        for keyword in keywords:
+            if keyword in query:
+                return scope
+    return None
 
 
 def initialize_chat_history():
     """チャット履歴を初期化"""
     if 'chat_history' not in st.session_state:
         st.session_state.chat_history = []
+
+
+def initialize_chat_context():
+    """チャットコンテキストを初期化"""
+    if 'chat_context' not in st.session_state:
+        st.session_state.chat_context = {
+            'site_scope': None,
+            'event_name': None,
+            'metric': None,
+            'dimension': None
+        }
+
+
+def update_chat_context(
+    site_scope: Optional[str] = None,
+    event_name: Optional[str] = None,
+    metric: Optional[str] = None,
+    dimension: Optional[str] = None
+):
+    """チャットコンテキストを更新（Noneでない値のみ更新）"""
+    if 'chat_context' not in st.session_state:
+        initialize_chat_context()
+    
+    if site_scope is not None:
+        st.session_state.chat_context['site_scope'] = site_scope
+    if event_name is not None:
+        st.session_state.chat_context['event_name'] = event_name
+    if metric is not None:
+        st.session_state.chat_context['metric'] = metric
+    if dimension is not None:
+        st.session_state.chat_context['dimension'] = dimension
+
+
+def get_chat_context() -> Dict[str, Any]:
+    """現在のチャットコンテキストを取得"""
+    if 'chat_context' not in st.session_state:
+        initialize_chat_context()
+    return st.session_state.chat_context
 
 
 def add_message(role: str, content: str, data: Optional[Any] = None):
@@ -66,13 +145,27 @@ def render_chat_view(ga4_client: GA4Client, gsc_client: Optional[GSCClient], sta
     render_section_header("chart", "対話アシスタント")
     
     initialize_chat_history()
+    initialize_chat_context()
+
+    # 現在のコンテキストを表示（デバッグ用、本番では非表示可）
+    context = get_chat_context()
+    if context.get('site_scope') or context.get('event_name'):
+        context_parts = []
+        if context.get('site_scope'):
+            context_parts.append(f"領域: {context['site_scope']}")
+        if context.get('event_name'):
+            context_parts.append(f"イベント: {get_event_display_name(context['event_name'])}")
+        st.caption(f"📝 会話コンテキスト: {' / '.join(context_parts)}")
 
     with st.container():
         st.markdown(
             """
             <div class="glass-panel chat-quick-panel">
-                <div class="chat-quick-panel__title">クイック質問</div>
-                <p class="chat-quick-panel__caption">よく使う質問から選ぶと、入力欄に自動で反映されます。</p>
+                <div class="chat-quick-panel__title" style="display:flex;align-items:center;gap:8px;">
+                    <span style="display:inline-flex;">""" + Icons.sparkles(16, "#7C6AEF") + """</span>
+                    クイック質問
+                </div>
+                <p class="chat-quick-panel__caption">よく使う質問から選ぶと、入力欄に自動で反映されます。「では先週は？」のように続けて質問できます。</p>
             </div>
             """,
             unsafe_allow_html=True
@@ -127,30 +220,49 @@ def render_chat_view(ga4_client: GA4Client, gsc_client: Optional[GSCClient], sta
         query_start_date = parsed['period'][0]
         query_end_date = parsed['period'][1]
         
+        # === コンテキスト継続処理（Phase 1: 新機能） ===
+        # 質問文からサイト領域を検出
+        detected_scope = _detect_site_scope_from_query(user_query)
+        # 検出できなければ前回のコンテキストを使用、それもなければサイドバーの値
+        effective_site_scope = detected_scope or get_chat_context().get('site_scope') or site_scope
+        
+        # イベント名を検出
+        detected_event = _detect_event_from_query(user_query)
+        # 検出できなければ前回のコンテキストを使用
+        effective_event = detected_event or get_chat_context().get('event_name')
+        
         # 質問タイプに応じて処理
         query_type = QueryParser.get_query_type(parsed)
         response_data = {}
 
-        detected_event = _detect_event_from_query(user_query)
-
         try:
-            if detected_event:
+            # イベント名が検出された場合、または前回のコンテキストにイベントがある場合
+            if effective_event:
+                # コンテキストを更新
+                update_chat_context(
+                    site_scope=effective_site_scope,
+                    event_name=effective_event
+                )
+                
                 # イベント名が含まれる質問
                 current_counts = ga4_client.get_event_counts_by_names(
-                    query_start_date, query_end_date, [detected_event], site_scope
+                    query_start_date, query_end_date, [effective_event], effective_site_scope
                 )
                 prev_start, prev_end = _calculate_previous_period(query_start_date, query_end_date)
                 previous_counts = ga4_client.get_event_counts_by_names(
-                    prev_start, prev_end, [detected_event], site_scope
+                    prev_start, prev_end, [effective_event], effective_site_scope
                 )
-                current_value = current_counts.get(detected_event, 0)
-                previous_value = previous_counts.get(detected_event, 0)
+                current_value = current_counts.get(effective_event, 0)
+                previous_value = previous_counts.get(effective_event, 0)
                 diff = current_value - previous_value
                 diff_percent = (diff / previous_value * 100) if previous_value else 0
-                display_name = get_event_display_name(detected_event)
+                display_name = get_event_display_name(effective_event)
+                
+                # 領域名を表示に含める
+                scope_label = f"（{effective_site_scope}）" if effective_site_scope else ""
 
                 response = (
-                    f"{query_start_date}から{query_end_date}までの{display_name}件数は"
+                    f"{query_start_date}から{query_end_date}までの{scope_label}{display_name}件数は"
                     f" {int(current_value):,} 件です。"
                 )
                 if previous_value:
@@ -178,18 +290,22 @@ def render_chat_view(ga4_client: GA4Client, gsc_client: Optional[GSCClient], sta
                 # 指標のみの質問
                 metric = parsed.get('metric')
                 if metric:
-                    metrics_data = ga4_client.get_overview_metrics(query_start_date, query_end_date, site_scope=site_scope)
+                    # コンテキストを更新
+                    update_chat_context(site_scope=effective_site_scope, metric=metric)
+                    
+                    metrics_data = ga4_client.get_overview_metrics(query_start_date, query_end_date, site_scope=effective_site_scope)
                     metric_value = metrics_data.get(metric, 0)
                     metric_name_jp = metric_labels.get(metric, metric)
+                    scope_label = f"（{effective_site_scope}）" if effective_site_scope else ""
                     
                     if metric in rate_metrics:
-                        response = f"{query_start_date}から{query_end_date}までの{metric_name_jp}は {metric_value * 100:.2f}% です。"
+                        response = f"{query_start_date}から{query_end_date}までの{scope_label}{metric_name_jp}は {metric_value * 100:.2f}% です。"
                     elif metric in duration_metrics:
                         minutes = int(metric_value // 60)
                         seconds = int(metric_value % 60)
-                        response = f"{query_start_date}から{query_end_date}までの{metric_name_jp}は {minutes}分{seconds}秒 です。"
+                        response = f"{query_start_date}から{query_end_date}までの{scope_label}{metric_name_jp}は {minutes}分{seconds}秒 です。"
                     else:
-                        response = f"{query_start_date}から{query_end_date}までの{metric_name_jp}は {int(metric_value):,} です。"
+                        response = f"{query_start_date}から{query_end_date}までの{scope_label}{metric_name_jp}は {int(metric_value):,} です。"
                 else:
                     response = "指標を特定できませんでした。"
             
@@ -198,6 +314,9 @@ def render_chat_view(ga4_client: GA4Client, gsc_client: Optional[GSCClient], sta
                 dimension = parsed.get('dimension')
                 metric = parsed.get('metric')
                 ranking = parsed.get('ranking', 10)
+                
+                # コンテキストを更新
+                update_chat_context(site_scope=effective_site_scope, metric=metric, dimension=dimension)
                 
                 def aggregate_metric(df: pd.DataFrame, group_col: str) -> Optional[pd.DataFrame]:
                     if metric not in df.columns:
@@ -221,7 +340,7 @@ def render_chat_view(ga4_client: GA4Client, gsc_client: Optional[GSCClient], sta
 
                 if dimension == 'sessionSource':
                     # 流入元別データ
-                    source_data = ga4_client.get_traffic_source(query_start_date, query_end_date, site_scope=site_scope)
+                    source_data = ga4_client.get_traffic_source(query_start_date, query_end_date, site_scope=effective_site_scope)
                     if not source_data.empty:
                         source_summary = aggregate_metric(source_data, 'sessionSource')
                         if source_summary is None:
@@ -246,7 +365,7 @@ def render_chat_view(ga4_client: GA4Client, gsc_client: Optional[GSCClient], sta
                         response = "データがありません。"
                 
                 elif dimension == 'sessionDefaultChannelGroup':
-                    channel_data = ga4_client.get_traffic_source(query_start_date, query_end_date, site_scope=site_scope)
+                    channel_data = ga4_client.get_traffic_source(query_start_date, query_end_date, site_scope=effective_site_scope)
                     if not channel_data.empty:
                         channel_summary = aggregate_metric(channel_data, 'sessionDefaultChannelGroup')
                         if channel_summary is None:
@@ -271,7 +390,7 @@ def render_chat_view(ga4_client: GA4Client, gsc_client: Optional[GSCClient], sta
 
                 elif dimension == 'deviceCategory':
                     # デバイス別データ
-                    device_data = ga4_client.get_device_data(query_start_date, query_end_date, site_scope=site_scope)
+                    device_data = ga4_client.get_device_data(query_start_date, query_end_date, site_scope=effective_site_scope)
                     if not device_data.empty:
                         device_summary = aggregate_metric(device_data, 'deviceCategory')
                         if device_summary is None:
@@ -293,7 +412,7 @@ def render_chat_view(ga4_client: GA4Client, gsc_client: Optional[GSCClient], sta
                         response = "データがありません。"
                 
                 elif dimension == 'sessionCampaignName':
-                    utm_data = ga4_client.get_utm_data(query_start_date, query_end_date, site_scope=site_scope)
+                    utm_data = ga4_client.get_utm_data(query_start_date, query_end_date, site_scope=effective_site_scope)
                     if not utm_data.empty:
                         utm_summary = aggregate_metric(utm_data, 'sessionCampaignName')
                         if utm_summary is None:
@@ -317,7 +436,7 @@ def render_chat_view(ga4_client: GA4Client, gsc_client: Optional[GSCClient], sta
                         response = "データがありません。"
 
                 elif dimension == 'pagePath':
-                    page_data = ga4_client.get_page_data(query_start_date, query_end_date, site_scope=site_scope)
+                    page_data = ga4_client.get_page_data(query_start_date, query_end_date, site_scope=effective_site_scope)
                     if not page_data.empty:
                         page_summary = aggregate_metric(page_data, 'pagePath')
                         if page_summary is None:
@@ -349,14 +468,18 @@ def render_chat_view(ga4_client: GA4Client, gsc_client: Optional[GSCClient], sta
                 ranking = parsed.get('ranking', 10)
                 dimension = parsed.get('dimension')
                 
+                # コンテキストを更新
+                update_chat_context(site_scope=effective_site_scope, metric=metric, dimension=dimension)
+                
                 if dimension == 'sessionSource' or not dimension:
                     # 流入元ランキング
-                    source_data = ga4_client.get_traffic_source(query_start_date, query_end_date, site_scope=site_scope)
+                    source_data = ga4_client.get_traffic_source(query_start_date, query_end_date, site_scope=effective_site_scope)
                     if not source_data.empty:
                         source_summary = source_data.groupby('sessionSource')['sessions'].sum().reset_index()
                         source_summary = source_summary.sort_values('sessions', ascending=False).head(ranking)
                         
-                        response = f"流入元トップ{ranking}は以下の通りです。"
+                        scope_label = f"（{effective_site_scope}）" if effective_site_scope else ""
+                        response = f"{scope_label}流入元トップ{ranking}は以下の通りです。"
                         response_data['table'] = source_summary
                         
                         fig = Visualization.create_bar_chart(
@@ -380,11 +503,15 @@ def render_chat_view(ga4_client: GA4Client, gsc_client: Optional[GSCClient], sta
             
             else:
                 # 一般的な質問
-                # 概要データを表示
-                metrics_data = ga4_client.get_overview_metrics(query_start_date, query_end_date, site_scope=site_scope)
-                daily_traffic = ga4_client.get_daily_traffic(query_start_date, query_end_date, site_scope=site_scope)
+                # コンテキストを更新
+                update_chat_context(site_scope=effective_site_scope)
                 
-                response = f"{query_start_date}から{query_end_date}までの概要データです。"
+                # 概要データを表示
+                metrics_data = ga4_client.get_overview_metrics(query_start_date, query_end_date, site_scope=effective_site_scope)
+                daily_traffic = ga4_client.get_daily_traffic(query_start_date, query_end_date, site_scope=effective_site_scope)
+                
+                scope_label = f"（{effective_site_scope}）" if effective_site_scope else ""
+                response = f"{query_start_date}から{query_end_date}までの{scope_label}概要データです。"
                 
                 # グラフを作成
                 if not daily_traffic.empty:

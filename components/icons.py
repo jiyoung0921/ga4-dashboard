@@ -301,6 +301,22 @@ class Icons:
         )
     
     @staticmethod
+    def info(size: int = DEFAULT_SIZE, color: str = "currentColor") -> str:
+        """インフォメーション"""
+        return _svg_wrapper(
+            '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/>',
+            size, color=color
+        )
+    
+    @staticmethod
+    def x_circle(size: int = DEFAULT_SIZE, color: str = "currentColor") -> str:
+        """エラー"""
+        return _svg_wrapper(
+            '<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>',
+            size, color=color
+        )
+    
+    @staticmethod
     def wifi(size: int = DEFAULT_SIZE, color: str = "currentColor") -> str:
         """接続中"""
         return _svg_wrapper(
