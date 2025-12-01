@@ -481,3 +481,37 @@ class GA4Client:
  
         return df
 
+    def get_cv_by_landing_page(
+        self,
+        start_date: str,
+        end_date: str,
+        site_scope: Optional[str] = None,
+        event_names: Optional[List[str]] = None,
+        limit: int = 500
+    ) -> pd.DataFrame:
+        """CVイベント×ランディングページ（記事）のイベント数を取得
+        
+        どの記事（ランディングページ）からCVが発生したかを分析するためのメソッド
+        """
+        event_filter = None
+        if event_names:
+            event_filter = FilterExpression(
+                filter=Filter(
+                    field_name="eventName",
+                    in_list_filter=Filter.InListFilter(values=event_names)
+                )
+            )
+ 
+        df = self.run_report(
+            dimensions=['landingPage', 'eventName'],
+            metrics=['eventCount'],
+            date_ranges=[{'start_date': start_date, 'end_date': end_date}],
+            dimension_filter=self._merge_filters(
+                self._build_site_scope_filter(site_scope),
+                event_filter
+            ),
+            limit=limit
+        )
+ 
+        return df
+

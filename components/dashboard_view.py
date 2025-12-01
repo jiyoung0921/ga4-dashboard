@@ -590,17 +590,19 @@ def render_overview_tab(ga4_client: GA4Client, start_date: str, end_date: str, s
 
 
 def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site_scope: Optional[str]):
-    """イベントタブをレンダリング（記事別分析）"""
+    """イベントタブをレンダリング（ランディングページ別CV分析）"""
     from components.header import render_section_header
-    render_section_header("event", "記事別イベント分析")
+    render_section_header("event", "ランディングページ別CV分析")
+    
+    st.caption("💡 どの記事（ランディングページ）からCVが発生したかを分析します")
  
     event_names = get_cv_events_for_scope(site_scope)
     
-    # site_scopeなしで全データを取得
-    event_data = ga4_client.get_event_page_counts(
+    # ランディングページ×CVイベントのデータを取得
+    event_data = ga4_client.get_cv_by_landing_page(
         start_date,
         end_date,
-        site_scope=None,  # フィルタなしで全データ取得
+        site_scope=site_scope,
         event_names=event_names,
         limit=1000
     )
@@ -611,51 +613,62 @@ def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site
  
     event_data['eventCount'] = event_data['eventCount'].astype(float)
     
-    # デバッグ: 取得した生データを表示
-    with st.expander("🔍 取得した生データ（デバッグ用）", expanded=False):
-        st.write(f"取得件数: {len(event_data)} 件")
-        st.write(f"イベント名: {event_data['eventName'].unique().tolist()}")
-        st.dataframe(event_data.head(50), use_container_width=True)
- 
-    # サンクスページのみ除外（緩いフィルタ）
-    exclude_patterns = ['thank', '(not set)']
+    # (not set)やサンクスページを除外
+    exclude_patterns = ['(not set)', '(none)', 'thank', 'pathmake']
     
-    page_series = event_data['pagePath'].astype(str).str.lower()
+    page_series = event_data['landingPage'].astype(str).str.lower()
     mask = ~page_series.str.contains('|'.join(exclude_patterns), case=False, na=False, regex=True)
     event_data = event_data[mask]
  
     if event_data.empty:
-        render_message("フィルタ後のデータがありません。", "warning")
+        render_message("フィルタ後のデータがありません。期間を広げてみてください。", "warning")
         return
  
-    with st.expander("生データ（参考）"):
-        st.dataframe(event_data.head(30), width="stretch")
+    with st.expander("生データ（参考）", expanded=False):
+        st.write(f"取得件数: {len(event_data)} 件")
+        st.dataframe(event_data.head(30), use_container_width=True)
  
+    # CV総数が多いランディングページ TOP10
     overall = (
-        event_data.groupby('pagePath')['eventCount']
+        event_data.groupby('landingPage')['eventCount']
         .sum()
         .reset_index()
         .sort_values('eventCount', ascending=False)
-        .head(5)
+        .head(10)
     )
  
     _render_subsection_heading(
         Icons.bar_chart_3(18, SUBHEADER_ICON_COLOR),
-        "イベント総数が多い記事 TOP5"
+        "CV総数が多いランディングページ TOP10"
     )
     if overall.empty:
         render_message("データがありません")
     else:
-        display_overall = overall.rename(columns={'pagePath': '記事URL', 'eventCount': 'イベント総数'})
-        st.dataframe(display_overall, width="stretch")
+        display_overall = overall.rename(columns={'landingPage': 'ランディングページ', 'eventCount': 'CV総数'})
+        st.dataframe(display_overall, use_container_width=True)
+        
+        # グラフも表示
+        fig = Visualization.create_bar_chart(
+            overall.head(10),
+            'landingPage',
+            'eventCount',
+            "",
+            "ランディングページ",
+            "CV数",
+            orientation='h'
+        )
+        st.plotly_chart(fig, use_container_width=True)
  
+    st.divider()
+    
+    # イベント別のランディングページ TOP10
     _render_subsection_heading(
         Icons.target(18, SUBHEADER_ICON_COLOR),
-        "イベント別 記事 TOP5"
+        "イベント別 ランディングページ TOP10"
     )
     if event_names:
         display_mapping = {get_event_display_name(name): name for name in event_names}
-        selected_display = st.selectbox("イベントを選択", list(display_mapping.keys()))
+        selected_display = st.selectbox("CVイベントを選択", list(display_mapping.keys()))
         selected_event = display_mapping[selected_display]
     else:
         render_message("イベント設定がありません")
@@ -664,17 +677,29 @@ def render_event_tab(ga4_client: GA4Client, start_date: str, end_date: str, site
     event_df = (
         event_data[event_data['eventName'] == selected_event]
         .sort_values('eventCount', ascending=False)
-        .head(5)
+        .head(10)
     )
  
     if event_df.empty:
         render_message("該当イベントのデータがありません")
         return
  
-    display_df = event_df[['pagePath', 'eventCount']].rename(
-        columns={'pagePath': '記事URL', 'eventCount': 'イベント数'}
+    display_df = event_df[['landingPage', 'eventCount']].rename(
+        columns={'landingPage': 'ランディングページ', 'eventCount': 'CV数'}
     )
-    st.dataframe(display_df, width="stretch")
+    st.dataframe(display_df, use_container_width=True)
+    
+    # グラフ
+    fig = Visualization.create_bar_chart(
+        event_df.head(10),
+        'landingPage',
+        'eventCount',
+        f"{selected_display}のランディングページ別CV数",
+        "ランディングページ",
+        "CV数",
+        orientation='h'
+    )
+    st.plotly_chart(fig, use_container_width=True)
  
 
 
